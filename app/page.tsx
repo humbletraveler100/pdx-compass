@@ -32,7 +32,7 @@ export default function Home() {
         <div className="max-w-md mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <img
-              src="https://www.humbletravelers.org/assets/images/image04.jpg?v=9dd789db"
+              src="https://i.ibb.co/HTPNMBMB/thtf-compass-logo.png"
               alt="Humble Travelers Logo"
               className="h-10 w-10 rounded-full bg-white object-cover"
             />
