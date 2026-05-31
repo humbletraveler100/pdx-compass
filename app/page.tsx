@@ -5,6 +5,20 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 font-serif text-primary-light">
       <Head>
         <title>PDX Community Compass</title>
+      {/* Navigation */}
+      <nav className="bg-primary text-white p-4 shadow-md">
+        <div className="max-w-md mx-auto flex justify-between items-center">
+          <img
+            src="https://www.humbletravelers.org/assets/images/image04.jpg?v=9dd789db"
+            alt="Humble Travelers Logo"
+            className="h-10 w-10 rounded-full bg-white object-cover"
+          />
+          <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
+          <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm">
+            Sign In
+          </a>
+        </div>
+      </nav>
       </Head>
 
       {/* Navigation */}
