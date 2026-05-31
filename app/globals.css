@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #055368;
+  --color-primary-light: #244357;
+  --color-secondary: #c2f5f7;
+  --color-secondary-mint: #c5ffce;
+  --color-secondary-peach: #f0c498;
+  --color-secondary-apricot: #fcd9b8;
+  --font-serif: "Playfair Display", serif;
+}
+
+body {
+  background-color: #f9fafb;
+}
+
