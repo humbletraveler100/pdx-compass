@@ -71,16 +71,17 @@ export default function Home() {
             <p className="text-xs text-gray-600">Set up your identity.</p>
           </a>
 
-          {/* NEW: The Community Feed Button! */}
           <a href="/feed" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition border-l-4 border-[#0f766e]">
             <h3 className="font-bold text-lg mb-1">Community Feed</h3>
             <p className="text-xs text-gray-600">View open requests.</p>
           </a>
 
-          <div className="bg-white p-4 rounded-xl shadow">
-            <h3 className="font-bold text-lg mb-1">Connect</h3>
-            <p className="text-xs text-gray-600">Propose a project.</p>
-          </div>
+          {/* NEW: The Dashboard Button replacing 'Connect'! */}
+          <a href="/dashboard" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition border-l-4 border-[#b45309]">
+            <h3 className="font-bold text-lg mb-1">Dashboard</h3>
+            <p className="text-xs text-gray-600">Manage your activity.</p>
+          </a>
+
           <div className="bg-white p-4 rounded-xl shadow">
             <h3 className="font-bold text-lg mb-1">Space</h3>
             <p className="text-xs text-gray-600">Locate resources.</p>
