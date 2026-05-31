@@ -22,7 +22,6 @@ export default function Dashboard() {
       
       setUser(session.user);
 
-      // 1. Fetch Requests I Posted
       const { data: reqData } = await supabase
         .from('requests')
         .select('*')
@@ -31,7 +30,6 @@ export default function Dashboard() {
 
       if (reqData) setMyRequests(reqData);
 
-      // 2. Fetch Tasks I Claimed (Need a join to get the request details)
       const { data: claimData } = await supabase
         .from('claims')
         .select(`
@@ -56,11 +54,45 @@ export default function Dashboard() {
     fetchDashboardData();
   }, [router]);
 
+  // NEW: Function to handle Mark Fulfilled and Remove
+  const handleUpdateRequestStatus = async (reqId: string, newStatus: string) => {
+    const confirmMsg = newStatus === 'cancelled' 
+      ? "Are you sure you want to remove this request?" 
+      : "Awesome! Has this request been fully completed?";
+      
+    if (!window.confirm(confirmMsg)) return;
+
+    const { error } = await supabase
+      .from('requests')
+      .update({ status: newStatus })
+      .eq('id', reqId);
+
+    if (error) {
+      alert(`Error updating request: ${error.message}`);
+    } else {
+      // Instantly update the screen so they don't have to refresh
+      setMyRequests(myRequests.map(req => 
+        req.id === reqId ? { ...req, status: newStatus } : req
+      ));
+    }
+  };
+
+  // NEW: Temporary function for the Message button
+  const handleMessageNeighbor = () => {
+    alert("In-app messaging system coming soon! This will allow secure communication between neighbors.");
+  };
+
+  // NEW: Temporary function for the Edit button
+  const handleEdit = () => {
+    alert("Edit form coming soon! For now, you can remove this request and post a new one.");
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'open': return <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded border border-green-200">Open</span>;
       case 'claimed': return <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded border border-yellow-200">Claimed</span>;
       case 'completed': return <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded border border-gray-200">Completed</span>;
+      case 'cancelled': return <span className="bg-red-100 text-red-800 text-xs px-2 py-1 rounded border border-red-200">Removed</span>;
       default: return <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded border border-blue-200 capitalize">{status}</span>;
     }
   };
@@ -82,7 +114,6 @@ export default function Dashboard() {
           <p className="text-center text-[#164e63] font-bold">Loading your activity...</p>
         ) : (
           <>
-            {/* Section 1: Help I Need */}
             <section>
               <h3 className="text-lg font-bold text-[#0f766e] border-b-2 border-[#0f766e] pb-1 mb-4">Help I Need</h3>
               {myRequests.length === 0 ? (
@@ -98,14 +129,41 @@ export default function Dashboard() {
                         <h4 className="font-bold text-[#164e63] text-sm">{req.title}</h4>
                         {getStatusBadge(req.status)}
                       </div>
-                      <p className="text-xs text-gray-500 line-clamp-1">{req.description}</p>
+                      <p className="text-xs text-gray-500 line-clamp-1 mb-3">{req.description}</p>
+                      
+                      {/* NEW: Action Buttons for Requests */}
+                      <div className="flex gap-2">
+                        {req.status !== 'completed' && req.status !== 'cancelled' && (
+                          <>
+                            <button 
+                              onClick={() => handleUpdateRequestStatus(req.id, 'completed')}
+                              className="flex-1 bg-[#10b981] text-white text-xs font-bold py-2 rounded shadow-sm hover:bg-opacity-90"
+                            >
+                              Mark Fulfilled
+                            </button>
+                            <button 
+                              onClick={handleEdit}
+                              className="flex-1 bg-gray-100 text-gray-700 border border-gray-300 text-xs font-bold py-2 rounded shadow-sm hover:bg-gray-200"
+                            >
+                              Edit
+                            </button>
+                          </>
+                        )}
+                        {req.status === 'open' && (
+                          <button 
+                            onClick={() => handleUpdateRequestStatus(req.id, 'cancelled')}
+                            className="bg-red-50 text-red-600 border border-red-200 px-3 text-xs font-bold py-2 rounded shadow-sm hover:bg-red-100"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
             </section>
 
-            {/* Section 2: Help I'm Giving */}
             <section>
               <h3 className="text-lg font-bold text-[#b45309] border-b-2 border-[#b45309] pb-1 mb-4">Help I'm Giving</h3>
               {myClaims.length === 0 ? (
@@ -126,7 +184,12 @@ export default function Dashboard() {
                         {req?.location_label && (
                           <p className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded inline-block mt-1">📍 {req.location_label}</p>
                         )}
-                        <button className="w-full mt-3 bg-[#164e63] text-white text-xs font-bold py-2 rounded shadow hover:bg-opacity-90">
+                        
+                        {/* NEW: Wired up Message Button */}
+                        <button 
+                          onClick={handleMessageNeighbor}
+                          className="w-full mt-3 bg-[#164e63] text-white text-xs font-bold py-2 rounded shadow hover:bg-opacity-90"
+                        >
                           Message Neighbor
                         </button>
                       </div>
