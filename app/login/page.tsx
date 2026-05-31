@@ -2,22 +2,30 @@
 
 import { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const router = useRouter();
 
   const handleSignUp = async () => {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) setMessage(error.message);
-    else setMessage('Success! Your account has been created.');
+    else {
+      setMessage('Success! Your account has been created. Routing you in...');
+      setTimeout(() => router.push('/'), 1500);
+    }
   };
 
   const handleSignIn = async () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setMessage(error.message);
-    else setMessage('Logged in successfully! Welcome back.');
+    else {
+      setMessage('Logged in successfully! Welcome back.');
+      setTimeout(() => router.push('/'), 1500);
+    }
   };
 
   return (
@@ -66,4 +74,3 @@ export default function Login() {
     </div>
   );
 }
-
