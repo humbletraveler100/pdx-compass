@@ -1,104 +1,169 @@
-import Head from 'next/head';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // 1. Check if the user is already logged in when the page loads
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    checkUser();
+
+    // 2. Listen for any changes (like if they log out or log in)
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 font-serif text-primary-light">
-      <Head>
-        <title>PDX Community Compass</title>
+    <div className="min-h-screen bg-gray-50 font-sans">
+      
       {/* Navigation */}
-      <nav className="bg-primary text-white p-4 shadow-md">
+      <nav className="bg-[#164e63] text-white p-4 shadow-md">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <img
-            src="https://www.humbletravelers.org/assets/images/image04.jpg?v=9dd789db"
-            alt="Humble Travelers Logo"
-            className="h-10 w-10 rounded-full bg-white object-cover"
-          />
-          <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
-          <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm">
-            Sign In
-          </a>
-        </div>
-      </nav>
-      </Head>
+          <div className="flex items-center gap-3">
+            <img
+              src="https://www.humbletravelers.org/assets/images/image04.jpg?v=9dd789db"
+              alt="Humble Travelers Logo"
+              className="h-10 w-10 rounded-full bg-white object-cover"
+            />
+            <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
+          </div>
+          
+          {/* The Magic Button Swap */}
+          {user ? (
+            <button 
+              onClick={handleSignOut} 
+              className="bg-[#fed7aa] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm hover:bg-opacity-90"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <a 
+              href="/login" 
+              className="bg-[#fcd34d] text-[#164
 
+
+cat << 'EOF' > app/page.tsx
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
+
+export default function Home() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    // 1. Check if the user is already logged in when the page loads
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    checkUser();
+
+    // 2. Listen for any changes (like if they log out or log in)
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans">
+      
       {/* Navigation */}
-      <nav className="bg-primary text-white p-4 shadow-md sticky top-0 z-50">
+      <nav className="bg-[#164e63] text-white p-4 shadow-md">
         <div className="max-w-md mx-auto flex justify-between items-center">
-          <img 
-            src="https://www.humbletravelers.org/assets/images/thtf-compass-logo.png" 
-            alt="Humble Travelers Logo" 
-            className="h-10 w-10 rounded-full bg-white p-1"
-          />
-          <h1 className="text-xl font-bold tracking-wide">PDX Compass</h1>
-             <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold">
-            Sign In
-          </a>
-
+          <div className="flex items-center gap-3">
+            <img
+              src="https://www.humbletravelers.org/assets/images/image04.jpg?v=9dd789db"
+              alt="Humble Travelers Logo"
+              className="h-10 w-10 rounded-full bg-white object-cover"
+            />
+            <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
+          </div>
+          
+          {/* The Magic Button Swap */}
+          {user ? (
+            <button 
+              onClick={handleSignOut} 
+              className="bg-[#fed7aa] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm hover:bg-opacity-90"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <a 
+              href="/login" 
+              className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm hover:bg-opacity-90"
+            >
+              Sign In
+            </a>
+          )}
         </div>
       </nav>
 
       {/* Hero Section */}
-      <header className="bg-secondary p-8 text-center border-b-4 border-secondary-mint">
-        <h2 className="text-3xl font-bold text-primary mb-3">
+      <header className="bg-[#cffafe] p-8 text-center text-[#164e63]">
+        <h2 className="text-3xl font-bold mb-4">
           We Are All Travelers Shaping Stronger Communities Together
         </h2>
-        <p className="text-lg text-primary-light mb-4">
+        <p className="text-lg mb-6">
           A Portland-based 501(c)(3) fostering inclusion, bridging divides, and building capacity through grassroots engagement.
         </p>
-        <button className="bg-primary text-white font-bold py-3 px-6 rounded-lg shadow-lg w-full max-w-xs hover:bg-primary-light">
+        <button className="bg-[#164e63] text-white font-bold py-3 px-6 rounded-lg hover:bg-opacity-90">
           Ask for Help
         </button>
       </header>
 
       {/* Main Dashboard / Features */}
-      <main className="p-4 max-w-md mx-auto space-y-6 mt-4">
-        
+      <main className="p-4 max-w-md mx-auto space-y-6">
+
         {/* Safety Disclaimer */}
-        <div className="bg-secondary-apricot p-4 rounded-lg shadow-sm text-sm border-l-4 border-primary">
-          <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise individual services. Please exercise reasonable judgment and prioritize personal safety.
+        <div className="bg-[#fed7aa] p-4 rounded-lg text-[#164e63] text-sm">
+          <strong>Safety Notice:</strong> The Humble Travelers Foundation requires all neighbors to verify their identity before exchanging services.
         </div>
 
         {/* Feature Cards */}
-        <section className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-4 rounded-xl shadow-md border-t-4 border-primary text-center">
-            <h3 className="font-bold text-lg mb-1">Action Board</h3>
-            <p className="text-xs text-gray-600">Volunteer & Connect</p>
+        <section className="grid grid-cols-2 gap-4 text-[#164e63]">
+          <div className="bg-white p-4 rounded-xl shadow">
+            <h3 className="font-bold text-lg mb-1">Act</h3>
+            <p className="text-xs text-gray-600">Volunteer your time.</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-md border-t-4 border-secondary-peach text-center">
-            <h3 className="font-bold text-lg mb-1">Aid Exchange</h3>
-            <p className="text-xs text-gray-600">Borrow & Assist</p>
+          <div className="bg-white p-4 rounded-xl shadow">
+            <h3 className="font-bold text-lg mb-1">Aid</h3>
+            <p className="text-xs text-gray-600">Borrow or lend tools.</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-md border-t-4 border-secondary-mint text-center">
-            <h3 className="font-bold text-lg mb-1">Community Ideas</h3>
-            <p className="text-xs text-gray-600">Propose & Vote</p>
+          <div className="bg-white p-4 rounded-xl shadow">
+            <h3 className="font-bold text-lg mb-1">Connect</h3>
+            <p className="text-xs text-gray-600">Propose a project.</p>
           </div>
-          <div className="bg-white p-4 rounded-xl shadow-md border-t-4 border-primary-light text-center">
-            <h3 className="font-bold text-lg mb-1">Spotlight</h3>
-            <p className="text-xs text-gray-600">Local Heroes</p>
-          </div>
-        </section>
-
-        {/* Community Feed Preview */}
-        <section className="mt-8">
-          <h3 className="text-2xl font-bold text-primary mb-4 border-b-2 border-secondary pb-2">Neighborhood Feed</h3>
-          
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 border border-gray-100">
-            <span className="bg-secondary-mint text-primary text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Volunteer Need</span>
-            <h4 className="font-bold text-lg mt-2">Sidewalk Brigade – Chalk Kindness Event</h4>
-            <p className="text-sm text-gray-600 mt-1">St. Johns • Sunday 2pm • Need: 5 volunteers</p>
-            <button className="mt-3 text-sm font-bold text-primary border border-primary px-4 py-2 rounded hover:bg-secondary">Offer Help</button>
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow-sm mb-4 border border-gray-100">
-            <span className="bg-secondary-peach text-primary text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Borrow Support</span>
-            <h4 className="font-bold text-lg mt-2">Needs to borrow a pressure washer</h4>
-            <p className="text-sm text-gray-600 mt-1">Alberta Arts • When: Saturday (flexible) • 2 hours</p>
-            <button className="mt-3 text-sm font-bold text-primary border border-primary px-4 py-2 rounded hover:bg-secondary">Message</button>
+          <div className="bg-white p-4 rounded-xl shadow">
+            <h3 className="font-bold text-lg mb-1">Space</h3>
+            <p className="text-xs text-gray-600">Locate resources.</p>
           </div>
         </section>
-
       </main>
+
     </div>
   );
 }
-
