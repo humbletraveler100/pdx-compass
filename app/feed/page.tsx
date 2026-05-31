@@ -7,11 +7,14 @@ import { useRouter } from 'next/navigation';
 export default function CommunityFeed() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      // Pull all 'open' requests and sort by newest first
+    const fetchRequestsAndUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+
       const { data, error } = await supabase
         .from('requests')
         .select('*')
@@ -24,10 +27,27 @@ export default function CommunityFeed() {
       setLoading(false);
     };
 
-    fetchRequests();
+    fetchRequestsAndUser();
   }, []);
 
-  // Helper to color-code urgency tags
+  const handleClaim = async (reqId: string) => {
+    if (!user) {
+      alert("Please sign in to help your neighbors!");
+      router.push('/login');
+      return;
+    }
+
+    const { error } = await supabase.rpc('claim_request', { target_request_id: reqId });
+
+    if (error) {
+      alert(`Error claiming request: ${error.message}`);
+    } else {
+      // Instantly remove the claimed request from the screen
+      setRequests(requests.filter(req => req.id !== reqId));
+      alert("Awesome! You've claimed this request. The neighbor has been notified.");
+    }
+  };
+
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -86,9 +106,19 @@ export default function CommunityFeed() {
                   )}
                 </div>
 
-                <button className="w-full bg-[#fcd34d] text-[#164e63] font-bold py-2 rounded-lg text-sm hover:bg-opacity-90 transition">
-                  Offer to Help
-                </button>
+                {/* The wired-up button! */}
+                {user?.id === req.requester_id ? (
+                  <button disabled className="w-full bg-gray-200 text-gray-500 font-bold py-2 rounded-lg text-sm cursor-not-allowed">
+                    This is your request
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => handleClaim(req.id)}
+                    className="w-full bg-[#fcd34d] text-[#164e63] font-bold py-2 rounded-lg text-sm hover:bg-opacity-90 transition shadow-sm"
+                  >
+                    Offer to Help
+                  </button>
+                )}
               </div>
             ))}
           </div>
