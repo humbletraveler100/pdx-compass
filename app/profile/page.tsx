@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
@@ -9,26 +10,62 @@ export default function Profile() {
   const [neighborhood, setNeighborhood] = useState('');
   const [skills, setSkills] = useState('');
   const [message, setMessage] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
-    const checkUser = async () => {
+    const fetchProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+      
+      if (session?.user) {
+        setUser(session.user);
+        
+        // Fetch existing profile data if they have one
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, neighborhood, skills')
+          .eq('id', session.user.id)
+          .single();
+
+        if (data) {
+          setFullName(data.full_name || '');
+          setNeighborhood(data.neighborhood || '');
+          setSkills(data.skills || '');
+        }
+      } else {
+        // If not logged in, boot them back to the login page
+        router.push('/login');
+      }
     };
-    checkUser();
-  }, []);
+    fetchProfile();
+  }, [router]);
 
   const handleSaveProfile = async () => {
-    // We will wire this up to the database next!
-    setMessage('Profile UI looks great! Database connection coming soon.');
+    if (!user) return;
+    setMessage('Saving...');
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id, // This links the profile to their secure login
+        full_name: fullName,
+        neighborhood: neighborhood,
+        skills: skills,
+        updated_at: new Date().toISOString(),
+      });
+
+    if (error) {
+      setMessage(`Error: ${error.message}`);
+    } else {
+      setMessage('Profile saved successfully!');
+      setTimeout(() => router.push('/'), 1500); // Send them to the homepage
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans">
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
-        </div>
+      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
+        <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
+        <a href="/" className="text-sm font-bold text-[#fcd34d] hover:underline">Cancel</a>
       </nav>
 
       <div className="bg-white p-6 rounded-xl shadow-lg max-w-md mx-auto border-t-4 border-[#0f766e]">
