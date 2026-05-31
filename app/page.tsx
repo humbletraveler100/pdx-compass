@@ -16,9 +16,10 @@ export default function Home() {
             className="h-10 w-10 rounded-full bg-white p-1"
           />
           <h1 className="text-xl font-bold tracking-wide">PDX Compass</h1>
-          <button className="bg-secondary-peach text-primary font-bold px-3 py-1 rounded-full text-sm">
+             <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold">
             Sign In
-          </button>
+          </a>
+
         </div>
       </nav>
 
