@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
-  const [fullName, setFullName] = useState('');
+  const [name, setName] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [skills, setSkills] = useState('');
   const [message, setMessage] = useState('');
@@ -19,20 +19,19 @@ export default function Profile() {
       if (session?.user) {
         setUser(session.user);
         
-        // Fetch existing profile data if they have one
+        // Fetch from your actual custom 'users' table
         const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, neighborhood, skills')
+          .from('users')
+          .select('name, neighborhood, skills')
           .eq('id', session.user.id)
           .single();
 
         if (data) {
-          setFullName(data.full_name || '');
+          setName(data.name || '');
           setNeighborhood(data.neighborhood || '');
           setSkills(data.skills || '');
         }
       } else {
-        // If not logged in, boot them back to the login page
         router.push('/login');
       }
     };
@@ -44,20 +43,20 @@ export default function Profile() {
     setMessage('Saving...');
 
     const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id, // This links the profile to their secure login
-        full_name: fullName,
+      .from('users')
+      .update({
+        name: name,
         neighborhood: neighborhood,
         skills: skills,
         updated_at: new Date().toISOString(),
-      });
+      })
+      .eq('id', user.id); // Update the row that matches their secure ID
 
     if (error) {
       setMessage(`Error: ${error.message}`);
     } else {
       setMessage('Profile saved successfully!');
-      setTimeout(() => router.push('/'), 1500); // Send them to the homepage
+      setTimeout(() => router.push('/'), 1500);
     }
   };
 
@@ -78,8 +77,8 @@ export default function Profile() {
         <input
           type="text"
           placeholder="e.g., Jane Doe"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0f766e]"
         />
 
