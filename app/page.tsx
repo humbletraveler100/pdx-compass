@@ -54,7 +54,6 @@ export default function Home() {
         <h2 className="text-3xl font-bold mb-4">We Are All Travelers Shaping Stronger Communities Together</h2>
         <p className="text-lg mb-6">A Portland-based 501(c)(3) fostering inclusion, bridging divides, and building capacity through grassroots engagement.</p>
         
-        {/* The freshly wired-up Ask for Help button! */}
         <a href="/ask" className="inline-block bg-[#164e63] text-white font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 shadow-md">
           Ask for Help
         </a>
@@ -66,14 +65,18 @@ export default function Home() {
         </div>
         
         <section className="grid grid-cols-2 gap-4 text-[#164e63]">
+          
           <a href="/profile" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition">
             <h3 className="font-bold text-lg mb-1">Profile</h3>
             <p className="text-xs text-gray-600">Set up your identity.</p>
           </a>
-          <div className="bg-white p-4 rounded-xl shadow">
-            <h3 className="font-bold text-lg mb-1">Aid</h3>
-            <p className="text-xs text-gray-600">Borrow or lend tools.</p>
-          </div>
+
+          {/* NEW: The Community Feed Button! */}
+          <a href="/feed" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition border-l-4 border-[#0f766e]">
+            <h3 className="font-bold text-lg mb-1">Community Feed</h3>
+            <p className="text-xs text-gray-600">View open requests.</p>
+          </a>
+
           <div className="bg-white p-4 rounded-xl shadow">
             <h3 className="font-bold text-lg mb-1">Connect</h3>
             <p className="text-xs text-gray-600">Propose a project.</p>
