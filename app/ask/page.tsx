@@ -61,7 +61,7 @@ export default function AskForHelp() {
         urgency: urgency,
         time_window: timeWindow,
         location_label: locationLabel,
-        status: 'open',
+        status: 'pending',
       });
 
     if (error) {
