@@ -47,6 +47,32 @@ export default function CommunityFeed() {
     }
   };
 
+  // NEW: The Report Function
+  const handleReport = async (reqId: string) => {
+    if (!user) {
+      alert("Please sign in to report a post.");
+      router.push('/login');
+      return;
+    }
+
+    const reason = window.prompt("Why are you reporting this post? (e.g., spam, inappropriate, unsafe)");
+    if (!reason) return; // If they click cancel, do nothing
+
+    const { error } = await supabase
+      .from('reports')
+      .insert({
+        reporter_id: user.id,
+        reported_request_id: reqId,
+        reason: reason
+      });
+
+    if (error) {
+      alert(`Error submitting report: ${error.message}`);
+    } else {
+      alert("Thank you. This post has been reported to the moderation team.");
+    }
+  };
+
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
       case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -74,7 +100,6 @@ export default function CommunityFeed() {
           </a>
         </div>
 
-        {/* NEW: Trust & Safety Disclaimer */}
         <div className="bg-[#fef3c7] border-l-4 border-[#b45309] p-4 mb-6 rounded-r-lg shadow-sm text-sm text-[#78350f]">
           <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals. Participants should exercise reasonable judgment and prioritize personal safety.
         </div>
@@ -89,8 +114,17 @@ export default function CommunityFeed() {
         ) : (
           <div className="space-y-4">
             {requests.map((req) => (
-              <div key={req.id} className="bg-white p-5 rounded-xl shadow-md border-l-4 border-[#0f766e]">
-                <div className="flex justify-between items-start mb-2">
+              <div key={req.id} className="bg-white p-5 rounded-xl shadow-md border-l-4 border-[#0f766e] relative">
+                
+                {/* NEW: Report Button */}
+                <button 
+                  onClick={() => handleReport(req.id)}
+                  className="absolute top-4 right-4 text-xs font-bold text-red-400 hover:text-red-600 uppercase tracking-wider"
+                >
+                  Flag
+                </button>
+
+                <div className="flex justify-between items-start mb-2 pr-10">
                   <h3 className="font-bold text-lg text-[#164e63] leading-tight">{req.title}</h3>
                 </div>
                 
