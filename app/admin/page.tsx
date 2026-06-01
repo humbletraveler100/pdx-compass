@@ -10,7 +10,7 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   // REPLACE THIS WITH YOUR ACTUAL LOGIN EMAIL
-  const ADMIN_EMAIL = 'humbletraveler100@gmail.com'; 
+  const ADMIN_EMAIL = 'thehumbletravelers@gmail.com'; 
 
   useEffect(() => {
     const fetchPending = async () => {
