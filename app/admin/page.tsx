@@ -9,7 +9,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // REPLACE THIS WITH YOUR ACTUAL LOGIN EMAIL
   const ADMIN_EMAIL = 'thehumbletravelers@gmail.com'; 
 
   useEffect(() => {
@@ -26,10 +25,15 @@ export default function AdminDashboard() {
         .from('requests')
         .select(`
           id, title, description, category_group, urgency, location_label, created_at,
-          requester:users(name, email)
+          requester:users(name)
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
+
+      // NEW: Sound the alarm if the database throws an error!
+      if (error) {
+        alert("Database Error: " + error.message);
+      }
 
       if (data) setPendingRequests(data);
       setLoading(false);
@@ -87,7 +91,6 @@ export default function AdminDashboard() {
                 
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-4">
                   <p><strong>Requester:</strong> {req.requester?.name || 'Unknown'}</p>
-                  <p><strong>Email:</strong> {req.requester?.email || 'Unknown'}</p>
                   <p><strong>Category:</strong> {req.category_group}</p>
                   <p><strong>Location:</strong> {req.location_label}</p>
                 </div>
