@@ -28,7 +28,6 @@ export default function AskForHelp() {
       
       setUser(session.user);
 
-      // Gatekeeper: Check if they have set up their profile
       const { data: profile } = await supabase
         .from('users')
         .select('name, neighborhood')
@@ -69,11 +68,10 @@ export default function AskForHelp() {
       setMessage(`Error: ${error.message}`);
     } else {
       setMessage('Request submitted successfully!');
-      setTimeout(() => router.push('/feed'), 1500); // Redirects to the feed so they see their post!
+      setTimeout(() => router.push('/feed'), 1500);
     }
   };
 
-  // Prevent the form from flashing on screen before the redirect happens
   if (!profileComplete) {
     return <div className="min-h-screen bg-[#e0f2fe] p-8 text-center text-[#164e63] font-bold">Verifying community trust status...</div>;
   }
@@ -89,28 +87,20 @@ export default function AskForHelp() {
         <h2 className="text-2xl font-bold text-[#0f766e] mb-2">Ask for Help</h2>
         <p className="text-gray-600 mb-6 text-sm">Post a request to the community board.</p>
 
+        {/* NEW: Trust & Safety Disclaimer */}
+        <div className="bg-[#fef3c7] border-l-4 border-[#b45309] p-4 mb-6 rounded-r-lg shadow-sm text-sm text-[#78350f]">
+          <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals. Participants should exercise reasonable judgment and prioritize personal safety.
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-bold text-[#164e63] mb-1">What do you need help with?</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g., Need to borrow a socket set"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0f766e]"
-            />
+            <input type="text" required placeholder="e.g., Need to borrow a socket set" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0f766e]" />
           </div>
 
           <div>
             <label className="block text-sm font-bold text-[#164e63] mb-1">Details</label>
-            <textarea
-              placeholder="e.g., Replacing a front wheel bearing this weekend, just need the tools for a few hours."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0f766e]"
-            />
+            <textarea placeholder="e.g., Replacing a front wheel bearing this weekend..." value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0f766e]" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

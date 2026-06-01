@@ -42,7 +42,6 @@ export default function CommunityFeed() {
     if (error) {
       alert(`Error claiming request: ${error.message}`);
     } else {
-      // Instantly remove the claimed request from the screen
       setRequests(requests.filter(req => req.id !== reqId));
       alert("Awesome! You've claimed this request. The neighbor has been notified.");
     }
@@ -73,6 +72,11 @@ export default function CommunityFeed() {
           <a href="/ask" className="bg-[#164e63] text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-opacity-90">
             + Ask
           </a>
+        </div>
+
+        {/* NEW: Trust & Safety Disclaimer */}
+        <div className="bg-[#fef3c7] border-l-4 border-[#b45309] p-4 mb-6 rounded-r-lg shadow-sm text-sm text-[#78350f]">
+          <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals. Participants should exercise reasonable judgment and prioritize personal safety.
         </div>
 
         {loading ? (
@@ -106,7 +110,6 @@ export default function CommunityFeed() {
                   )}
                 </div>
 
-                {/* The wired-up button! */}
                 {user?.id === req.requester_id ? (
                   <button disabled className="w-full bg-gray-200 text-gray-500 font-bold py-2 rounded-lg text-sm cursor-not-allowed">
                     This is your request
