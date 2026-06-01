@@ -25,7 +25,7 @@ export default function AdminDashboard() {
         .from('requests')
         .select(`
           id, title, description, category_group, urgency, location_label, created_at,
-          requester:users(name)
+          requester:users!requester_id(name)
         `)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
