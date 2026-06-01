@@ -187,7 +187,7 @@ export default function Dashboard() {
                         
                         {/* NEW: Wired up Message Button */}
                         <button 
-                          onClick={handleMessageNeighbor}
+                          onClick={() => router.push(`/chat/${req?.id}`)}
                           className="w-full mt-3 bg-[#164e63] text-white text-xs font-bold py-2 rounded shadow hover:bg-opacity-90"
                         >
                           Message Neighbor
