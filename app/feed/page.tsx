@@ -15,9 +15,13 @@ export default function CommunityFeed() {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
 
+      // UPGRADED QUERY: Now pulling the requester's name and trust score!
       const { data, error } = await supabase
         .from('requests')
-        .select('*')
+        .select(`
+          *,
+          requester:users!requester_id(name, completed_tasks)
+        `)
         .eq('status', 'open')
         .order('created_at', { ascending: false });
 
@@ -47,7 +51,6 @@ export default function CommunityFeed() {
     }
   };
 
-  // NEW: The Report Function
   const handleReport = async (reqId: string) => {
     if (!user) {
       alert("Please sign in to report a post.");
@@ -56,7 +59,7 @@ export default function CommunityFeed() {
     }
 
     const reason = window.prompt("Why are you reporting this post? (e.g., spam, inappropriate, unsafe)");
-    if (!reason) return; // If they click cancel, do nothing
+    if (!reason) return;
 
     const { error } = await supabase
       .from('reports')
@@ -116,7 +119,6 @@ export default function CommunityFeed() {
             {requests.map((req) => (
               <div key={req.id} className="bg-white p-5 rounded-xl shadow-md border-l-4 border-[#0f766e] relative">
                 
-                {/* NEW: Report Button */}
                 <button 
                   onClick={() => handleReport(req.id)}
                   className="absolute top-4 right-4 text-xs font-bold text-red-400 hover:text-red-600 uppercase tracking-wider"
@@ -124,8 +126,17 @@ export default function CommunityFeed() {
                   Flag
                 </button>
 
-                <div className="flex justify-between items-start mb-2 pr-10">
+                <div className="mb-3 pr-10">
                   <h3 className="font-bold text-lg text-[#164e63] leading-tight">{req.title}</h3>
+                  {/* NEW: Trust Badge Display */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-xs text-gray-500 font-semibold">{req.requester?.name || 'Neighbor'}</p>
+                    {req.requester?.completed_tasks > 0 && (
+                      <span className="bg-[#fef3c7] text-[#b45309] text-[10px] px-2 py-0.5 rounded-full font-bold border border-[#fcd34d]">
+                        🌟 {req.requester.completed_tasks} {req.requester.completed_tasks === 1 ? 'Task' : 'Tasks'} Completed
+                      </span>
+                    )}
+                  </div>
                 </div>
                 
                 <p className="text-gray-600 text-sm mb-4">{req.description}</p>
