@@ -15,7 +15,6 @@ export default function CommunityFeed() {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
 
-      // UPGRADED QUERY: Now pulling the requester's name and trust score!
       const { data, error } = await supabase
         .from('requests')
         .select(`
@@ -87,9 +86,14 @@ export default function CommunityFeed() {
 
   return (
     <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
+      {/* UPGRADED NAVIGATION BAR */}
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
         <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
-        <a href="/" className="text-sm font-bold text-[#fcd34d] hover:underline">Home</a>
+        <div className="space-x-4">
+          <a href="/ideas" className="text-sm font-bold text-gray-300 hover:text-white transition">Ideas</a>
+          <a href="/profile" className="text-sm font-bold text-gray-300 hover:text-white transition">Profile</a>
+          <a href="/" className="text-sm font-bold text-[#fcd34d] hover:underline">Home</a>
+        </div>
       </nav>
 
       <div className="max-w-md mx-auto">
@@ -128,7 +132,6 @@ export default function CommunityFeed() {
 
                 <div className="mb-3 pr-10">
                   <h3 className="font-bold text-lg text-[#164e63] leading-tight">{req.title}</h3>
-                  {/* NEW: Trust Badge Display */}
                   <div className="flex items-center gap-2 mt-1">
                     <p className="text-xs text-gray-500 font-semibold">{req.requester?.name || 'Neighbor'}</p>
                     {req.requester?.completed_tasks > 0 && (
