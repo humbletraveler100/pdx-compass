@@ -71,7 +71,6 @@ export default function Home() {
             <p className="text-gray-500 text-xs">View open requests.</p>
           </a>
           
-          {/* NEW: Ideas Board Card */}
           <a href="/ideas" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#fcd34d] hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Ideas</h3>
             <p className="text-gray-500 text-xs">Share inspiration.</p>
@@ -82,9 +81,10 @@ export default function Home() {
             <p className="text-gray-500 text-xs">Manage your activity.</p>
           </a>
           
-          <a href="/space" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Space</h3>
-            <p className="text-gray-500 text-xs">Locate resources.</p>
+          {/* EXTERNAL LINK: PDX Resource Compass */}
+          <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Resources</h3>
+            <p className="text-gray-500 text-xs">Find local support.</p>
           </a>
 
         </div>
