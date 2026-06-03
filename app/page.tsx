@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [user, setUser] = useState<any>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const checkUser = async () => {
@@ -12,82 +14,81 @@ export default function Home() {
       setUser(session?.user || null);
     };
     checkUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
   }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    router.push('/');
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-12">
-      <nav className="bg-[#164e63] text-white p-4 shadow-md">
-        <div className="max-w-md mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://i.ibb.co/HTPNMBMB/thtf-compass-logo.png"
-              alt="Humble Travelers Logo"
-              className="h-10 w-10 rounded-full bg-white object-cover"
-            />
-            <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
+    <div className="min-h-screen bg-[#cffafe] font-sans pb-12">
+      {/* Header */}
+      <header className="bg-[#164e63] text-white p-4 flex justify-between items-center rounded-b-xl shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden">
+             <span className="text-[#164e63] font-bold text-xs px-1 text-center leading-none">PDX</span>
           </div>
-          {user ? (
-            <button onClick={handleSignOut} className="bg-[#fed7aa] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm hover:bg-opacity-90">
-              Sign Out
-            </button>
-          ) : (
-            <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm hover:bg-opacity-90">
-              Sign In
-            </a>
-          )}
+          <h1 className="text-xl font-bold tracking-widest leading-tight">PDX<br/>Compass</h1>
         </div>
-      </nav>
-      
-      <header className="bg-[#cffafe] p-8 text-center text-[#164e63]">
-        <h2 className="text-3xl font-bold mb-4">We Are All Travelers Shaping Stronger Communities Together</h2>
-        <p className="text-lg mb-6">A Portland-based 501(c)(3) fostering inclusion, bridging divides, and building capacity through grassroots engagement.</p>
-        
-        <a href="/ask" className="inline-block bg-[#164e63] text-white font-bold py-3 px-6 rounded-lg hover:bg-opacity-90 shadow-md">
-          Ask for Help
-        </a>
+        {user ? (
+          <button onClick={handleSignOut} className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign Out</button>
+        ) : (
+          <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign In</a>
+        )}
       </header>
 
-      <main className="p-4 max-w-md mx-auto space-y-6">
-        <div className="bg-[#fed7aa] p-4 rounded-lg text-[#164e63] text-sm">
+      {/* Hero Section */}
+      <div className="px-6 pt-10 pb-8 text-center">
+        <h2 className="text-3xl font-extrabold text-[#164e63] leading-tight mb-4">
+          We Are All Travelers Shaping Stronger Communities Together
+        </h2>
+        <p className="text-[#0f766e] text-base mb-8 px-2">
+          A Portland-based 501(c)(3) fostering inclusion, bridging divides, and building capacity through grassroots engagement.
+        </p>
+        <a href="/ask" className="inline-block bg-[#164e63] text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-opacity-90 transition">
+          Ask for Help
+        </a>
+      </div>
+
+      <div className="max-w-md mx-auto px-4 space-y-6">
+        {/* Safety Notice */}
+        <div className="bg-[#fed7aa] p-5 rounded-xl text-sm text-[#78350f] shadow-sm">
           <strong>Safety Notice:</strong> The Humble Travelers Foundation requires all neighbors to verify their identity before exchanging services.
         </div>
-        
-        <section className="grid grid-cols-2 gap-4 text-[#164e63]">
+
+        {/* Navigation Grid */}
+        <div className="grid grid-cols-2 gap-4">
           
-          <a href="/profile" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition">
-            <h3 className="font-bold text-lg mb-1">Profile</h3>
-            <p className="text-xs text-gray-600">Set up your identity.</p>
+          <a href="/profile" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Profile</h3>
+            <p className="text-gray-500 text-xs">Set up your identity.</p>
+          </a>
+          
+          <a href="/feed" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#0f766e] hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Community Feed</h3>
+            <p className="text-gray-500 text-xs">View open requests.</p>
+          </a>
+          
+          {/* NEW: Ideas Board Card */}
+          <a href="/ideas" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#fcd34d] hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Ideas</h3>
+            <p className="text-gray-500 text-xs">Share inspiration.</p>
           </a>
 
-          <a href="/feed" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition border-l-4 border-[#0f766e]">
-            <h3 className="font-bold text-lg mb-1">Community Feed</h3>
-            <p className="text-xs text-gray-600">View open requests.</p>
+          <a href="/dashboard" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#b45309] hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Dashboard</h3>
+            <p className="text-gray-500 text-xs">Manage your activity.</p>
+          </a>
+          
+          <a href="/space" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Space</h3>
+            <p className="text-gray-500 text-xs">Locate resources.</p>
           </a>
 
-          {/* NEW: The Dashboard Button replacing 'Connect'! */}
-          <a href="/dashboard" className="bg-white p-4 rounded-xl shadow block hover:bg-gray-50 transition border-l-4 border-[#b45309]">
-            <h3 className="font-bold text-lg mb-1">Dashboard</h3>
-            <p className="text-xs text-gray-600">Manage your activity.</p>
-          </a>
-
-          <div className="bg-white p-4 rounded-xl shadow">
-            <h3 className="font-bold text-lg mb-1">Space</h3>
-            <p className="text-xs text-gray-600">Locate resources.</p>
-          </div>
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
   );
 }
