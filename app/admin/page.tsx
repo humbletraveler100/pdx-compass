@@ -10,6 +10,12 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // Admin Announcement State
+  const [announceTitle, setAnnounceTitle] = useState('');
+  const [announceStory, setAnnounceStory] = useState('');
+  const [announceType, setAnnounceType] = useState('admin_event');
+  const [posting, setPosting] = useState(false);
+
   const ADMIN_EMAIL = 'thehumbletravelers@gmail.com'; 
 
   useEffect(() => {
@@ -22,31 +28,20 @@ export default function AdminDashboard() {
         return;
       }
 
-      // 1. Fetch pending requests
-      const { data: reqData, error: reqError } = await supabase
+      // Fetch pending requests
+      const { data: reqData } = await supabase
         .from('requests')
-        .select(`
-          id, title, description, category_group, urgency, location_label, created_at,
-          requester:users!requester_id(name)
-        `)
+        .select('id, title, description, category_group, urgency, location_label, created_at, requester:users!requester_id(name)')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
-
-      if (reqError) alert("Requests Error: " + reqError.message);
       if (reqData) setPendingRequests(reqData);
 
-      // 2. Fetch pending reports
-      const { data: repData, error: repError } = await supabase
+      // Fetch pending reports
+      const { data: repData } = await supabase
         .from('reports')
-        .select(`
-          id, reason, created_at,
-          request:requests(id, title, description),
-          reporter:users!reporter_id(name)
-        `)
+        .select('id, reason, created_at, request:requests(id, title, description), reporter:users!reporter_id(name)')
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
-
-      if (repError) alert("Reports Error: " + repError.message);
       if (repData) setPendingReports(repData);
 
       setLoading(false);
@@ -55,99 +50,110 @@ export default function AdminDashboard() {
     fetchAdminData();
   }, [router]);
 
+  const handleAdminPost = async () => {
+    if (!announceTitle || !announceStory) {
+      alert("Please provide both a title and details.");
+      return;
+    }
+    
+    setPosting(true);
+    const { error } = await supabase
+      .from('spotlights')
+      .insert({
+        title: announceTitle,
+        story: announceStory,
+        post_type: announceType,
+        neighborhood: 'Admin Broadcast'
+      });
+
+    if (error) {
+      alert(`Error posting: ${error.message}`);
+    } else {
+      alert("Success! Your post has been published.");
+      setAnnounceTitle('');
+      setAnnounceStory('');
+    }
+    setPosting(false);
+  };
+
   const handleModeration = async (reqId: string, action: 'approve' | 'reject') => {
     const newStatus = action === 'approve' ? 'open' : 'cancelled';
     if (!window.confirm(`Are you sure you want to ${action} this request?`)) return;
 
-    const { error } = await supabase
-      .from('requests')
-      .update({ status: newStatus })
-      .eq('id', reqId);
-
-    if (error) {
-      alert(`Error updating request: ${error.message}`);
-    } else {
+    const { error } = await supabase.from('requests').update({ status: newStatus }).eq('id', reqId);
+    if (!error) {
       setPendingRequests(pendingRequests.filter(req => req.id !== reqId));
-      alert(`Request has been ${action === 'approve' ? 'approved' : 'rejected'}.`);
     }
   };
 
   const handleReportAction = async (reportId: string, reqId: string, action: 'dismiss' | 'remove_post') => {
-    if (!window.confirm(`Are you sure you want to ${action === 'dismiss' ? 'dismiss this report' : 'remove this post from the feed'}?`)) return;
+    if (!window.confirm(`Are you sure you want to ${action}?`)) return;
 
-    // First, mark the report as reviewed so it leaves the queue
-    const { error: repError } = await supabase
-      .from('reports')
-      .update({ status: 'reviewed' })
-      .eq('id', reportId);
-
-    if (repError) {
-      alert(`Error updating report: ${repError.message}`);
-      return;
-    }
-
-    // If removing the post, update the original request status to cancelled
+    await supabase.from('reports').update({ status: 'reviewed' }).eq('id', reportId);
     if (action === 'remove_post') {
-      const { error: reqError } = await supabase
-        .from('requests')
-        .update({ status: 'cancelled' })
-        .eq('id', reqId);
-      
-      if (reqError) alert(`Error removing post: ${reqError.message}`);
+      await supabase.from('requests').update({ status: 'cancelled' }).eq('id', reqId);
     }
-
     setPendingReports(pendingReports.filter(rep => rep.id !== reportId));
-    alert("Report handled successfully.");
   };
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 font-sans pb-12">
       <nav className="bg-gray-800 text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-widest text-red-400">Admin Moderation</h1>
+        <h1 className="text-xl font-bold tracking-widest text-red-400">Admin Command Center</h1>
         <a href="/" className="text-sm font-bold text-gray-300 hover:underline">Exit</a>
       </nav>
 
       <div className="max-w-2xl mx-auto space-y-10">
+
+        {/* Admin Megaphone Section */}
+        <section className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">📢 Broadcast to Community</h2>
+          <div className="space-y-4">
+            <div className="flex gap-4 mb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={announceType === 'admin_event'} onChange={() => setAnnounceType('admin_event')} />
+                <span className="font-bold text-gray-700">Community Event</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" checked={announceType === 'admin_spotlight'} onChange={() => setAnnounceType('admin_spotlight')} />
+                <span className="font-bold text-gray-700">Official Spotlight</span>
+              </label>
+            </div>
+            
+            <input 
+              type="text" placeholder="Title of Event or Spotlight" value={announceTitle} onChange={(e) => setAnnounceTitle(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <textarea 
+              placeholder="Provide the details, dates, and story here..." value={announceStory} onChange={(e) => setAnnounceStory(e.target.value)} rows={4}
+              className="w-full p-2 border border-gray-300 rounded outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              onClick={handleAdminPost} disabled={posting}
+              className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow hover:bg-blue-700 transition"
+            >
+              {posting ? 'Publishing...' : 'Publish to Feed'}
+            </button>
+          </div>
+        </section>
         
         {/* Flagged Posts Section */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            🚨 Flagged Posts
-          </h2>
-          {loading ? (
-            <p className="text-gray-600 font-bold">Loading...</p>
-          ) : pendingReports.length === 0 ? (
-             <div className="bg-white p-6 rounded-xl shadow border-t-4 border-gray-400">
-               <p className="text-gray-500 text-sm">No pending reports.</p>
-             </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">🚨 Flagged Posts</h2>
+          {pendingReports.length === 0 ? (
+             <div className="bg-white p-6 rounded-xl shadow text-gray-500 text-sm">No pending reports.</div>
           ) : (
             <div className="space-y-4">
               {pendingReports.map((rep) => (
                 <div key={rep.id} className="bg-white p-5 rounded-xl shadow border-l-4 border-purple-500">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-red-600">Reason: {rep.reason}</h3>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-3 rounded border border-gray-200 mb-4 text-sm text-gray-600">
-                    <p className="font-bold mb-1 text-gray-800">Original Post: {rep.request?.title}</p>
+                  <h3 className="font-bold text-red-600 mb-2">Reason: {rep.reason}</h3>
+                  <div className="bg-gray-50 p-3 rounded border text-sm text-gray-600 mb-4">
+                    <p className="font-bold text-gray-800">Original Post: {rep.request?.title}</p>
                     <p>{rep.request?.description}</p>
                   </div>
-                  
-                  <p className="text-xs text-gray-500 mb-4">Reported by: {rep.reporter?.name || 'Unknown User'}</p>
-                  
                   <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleReportAction(rep.id, rep.request?.id, 'dismiss')} 
-                      className="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded shadow hover:bg-gray-300"
-                    >
-                      Dismiss Report
-                    </button>
-                    <button 
-                      onClick={() => handleReportAction(rep.id, rep.request?.id, 'remove_post')} 
-                      className="flex-1 bg-red-600 text-white font-bold py-2 rounded shadow hover:bg-red-700"
-                    >
-                      Remove Post
-                    </button>
+                    <button onClick={() => handleReportAction(rep.id, rep.request?.id, 'dismiss')} className="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded">Dismiss Report</button>
+                    <button onClick={() => handleReportAction(rep.id, rep.request?.id, 'remove_post')} className="flex-1 bg-red-600 text-white font-bold py-2 rounded">Remove Post</button>
                   </div>
                 </div>
               ))}
@@ -157,30 +163,18 @@ export default function AdminDashboard() {
 
         {/* Moderation Queue Section */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-            📝 New Post Queue
-          </h2>
-          {loading ? (
-            <p className="text-gray-600 font-bold">Loading...</p>
-          ) : pendingRequests.length === 0 ? (
-            <div className="bg-white p-6 rounded-xl shadow border-t-4 border-gray-400">
-              <p className="text-gray-500 text-sm">No pending requests to review right now.</p>
-            </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">📝 New Post Queue</h2>
+          {pendingRequests.length === 0 ? (
+            <div className="bg-white p-6 rounded-xl shadow text-gray-500 text-sm">No pending requests.</div>
           ) : (
             <div className="space-y-4">
               {pendingRequests.map((req) => (
                 <div key={req.id} className="bg-white p-5 rounded-xl shadow border-l-4 border-yellow-500">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg text-gray-800 leading-tight">{req.title}</h3>
-                  </div>
-                  <p className="text-gray-600 text-sm mb-3 p-3 bg-gray-50 rounded border border-gray-200">{req.description}</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-4">
-                    <p><strong>Requester:</strong> {req.requester?.name || 'Unknown'}</p>
-                    <p><strong>Category:</strong> {req.category_group}</p>
-                  </div>
+                  <h3 className="font-bold text-lg text-gray-800 leading-tight mb-2">{req.title}</h3>
+                  <p className="text-gray-600 text-sm mb-3">{req.description}</p>
                   <div className="flex gap-2">
-                    <button onClick={() => handleModeration(req.id, 'approve')} className="flex-1 bg-green-600 text-white font-bold py-2 rounded shadow hover:bg-green-700">Approve</button>
-                    <button onClick={() => handleModeration(req.id, 'reject')} className="flex-1 bg-red-100 text-red-700 border border-red-200 font-bold py-2 rounded shadow hover:bg-red-200">Reject</button>
+                    <button onClick={() => handleModeration(req.id, 'approve')} className="flex-1 bg-green-600 text-white font-bold py-2 rounded">Approve</button>
+                    <button onClick={() => handleModeration(req.id, 'reject')} className="flex-1 bg-red-100 text-red-700 font-bold py-2 rounded">Reject</button>
                   </div>
                 </div>
               ))}
