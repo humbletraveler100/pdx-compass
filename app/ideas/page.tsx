@@ -52,25 +52,17 @@ export default function IdeasBoard() {
     let finalImageUrl = null;
 
     try {
-      // 1. Upload image to warehouse if one was attached
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `idea-${Date.now()}-${Math.random()}.${fileExt}`;
         
-        const { error: uploadError } = await supabase.storage
-          .from('compass-images')
-          .upload(fileName, imageFile);
-
+        const { error: uploadError } = await supabase.storage.from('compass-images').upload(fileName, imageFile);
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('compass-images')
-          .getPublicUrl(fileName);
-          
+        const { data: { publicUrl } } = supabase.storage.from('compass-images').getPublicUrl(fileName);
         finalImageUrl = publicUrl;
       }
 
-      // 2. Save the idea to the database
       const { error: insertError } = await supabase
         .from('community_ideas')
         .insert({
@@ -87,7 +79,7 @@ export default function IdeasBoard() {
       setTitle('');
       setDescription('');
       setImageFile(null);
-      fetchIdeasAndUser(); // Refresh the feed
+      fetchIdeasAndUser(); 
 
     } catch (error: any) {
       alert(`Error posting idea: ${error.message}`);
@@ -125,38 +117,17 @@ export default function IdeasBoard() {
           <div className="bg-white p-5 rounded-xl shadow-md border-t-4 border-[#fcd34d] mb-6 space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
-              <input 
-                type="text" 
-                value={title} 
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="What's your idea?"
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none"
-              />
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What's your idea?" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none" />
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
-              <textarea 
-                value={description} 
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Explain how it helps the neighborhood..."
-                rows={4}
-                className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none"
-              />
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Explain how it helps the neighborhood..." rows={4} className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none" />
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Attach a Photo (Optional)</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0f766e] hover:file:bg-blue-100"
-              />
+              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0f766e] hover:file:bg-blue-100" />
             </div>
-            <button 
-              onClick={handlePostIdea}
-              disabled={submitting}
-              className="w-full bg-[#fcd34d] text-[#164e63] font-bold py-2 rounded-lg text-sm hover:bg-opacity-90 shadow"
-            >
+            <button onClick={handlePostIdea} disabled={submitting} className="w-full bg-[#fcd34d] text-[#164e63] font-bold py-2 rounded-lg text-sm hover:bg-opacity-90 shadow">
               {submitting ? 'Posting...' : 'Share Idea'}
             </button>
           </div>
@@ -174,7 +145,6 @@ export default function IdeasBoard() {
           <div className="space-y-6">
             {ideas.map((idea) => (
               <div key={idea.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-                {/* Image Display */}
                 {idea.image_url && (
                   <div className="w-full h-48 bg-gray-100">
                     <img src={idea.image_url} alt={idea.title} className="w-full h-full object-cover" />
@@ -186,7 +156,8 @@ export default function IdeasBoard() {
                   <p className="text-gray-700 text-sm mb-4 whitespace-pre-wrap">{idea.description}</p>
                   
                   <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                    <div className="flex items-center gap-2">
+                    {/* UPGRADED: Clickable Neighbor Link */}
+                    <a href={`/neighbor/${idea.author_id}`} className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
                       <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300 flex items-center justify-center">
                         {idea.author?.avatar_url ? (
                           <img src={idea.author.avatar_url} alt="Author" className="w-full h-full object-cover" />
@@ -194,8 +165,8 @@ export default function IdeasBoard() {
                           <span className="text-gray-500 text-xs font-bold">{idea.author?.name?.charAt(0) || '?'}</span>
                         )}
                       </div>
-                      <span className="text-xs font-bold text-gray-600">{idea.author?.name || 'Neighbor'}</span>
-                    </div>
+                      <span className="text-xs font-bold text-[#0f766e] hover:underline">{idea.author?.name || 'Neighbor'}</span>
+                    </a>
                     <button className="text-xs font-bold text-[#0f766e] hover:underline">
                       💬 Comment
                     </button>

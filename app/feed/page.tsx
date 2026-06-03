@@ -86,7 +86,6 @@ export default function CommunityFeed() {
 
   return (
     <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
-      {/* UPGRADED NAVIGATION BAR */}
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
         <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
         <div className="space-x-4">
@@ -108,7 +107,7 @@ export default function CommunityFeed() {
         </div>
 
         <div className="bg-[#fef3c7] border-l-4 border-[#b45309] p-4 mb-6 rounded-r-lg shadow-sm text-sm text-[#78350f]">
-          <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals. Participants should exercise reasonable judgment and prioritize personal safety.
+          <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals.
         </div>
 
         {loading ? (
@@ -132,14 +131,15 @@ export default function CommunityFeed() {
 
                 <div className="mb-3 pr-10">
                   <h3 className="font-bold text-lg text-[#164e63] leading-tight">{req.title}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-xs text-gray-500 font-semibold">{req.requester?.name || 'Neighbor'}</p>
+                  {/* UPGRADED: Clickable Neighbor Link */}
+                  <a href={`/neighbor/${req.requester_id}`} className="flex items-center gap-2 mt-2 hover:opacity-80 transition cursor-pointer inline-flex">
+                    <p className="text-xs text-[#0f766e] hover:underline font-bold">{req.requester?.name || 'Neighbor'}</p>
                     {req.requester?.completed_tasks > 0 && (
                       <span className="bg-[#fef3c7] text-[#b45309] text-[10px] px-2 py-0.5 rounded-full font-bold border border-[#fcd34d]">
                         🌟 {req.requester.completed_tasks} {req.requester.completed_tasks === 1 ? 'Task' : 'Tasks'} Completed
                       </span>
                     )}
-                  </div>
+                  </a>
                 </div>
                 
                 <p className="text-gray-600 text-sm mb-4">{req.description}</p>
