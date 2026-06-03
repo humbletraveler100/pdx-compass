@@ -76,12 +76,17 @@ export default function Home() {
             <p className="text-gray-500 text-xs">Share inspiration.</p>
           </a>
 
+          {/* NEW: Spotlight Card */}
+          <a href="/spotlight" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-pink-500 hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Spotlight</h3>
+            <p className="text-gray-500 text-xs">Community wins.</p>
+          </a>
+
           <a href="/dashboard" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#b45309] hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Dashboard</h3>
-            <p className="text-gray-500 text-xs">Manage your activity.</p>
+            <p className="text-gray-500 text-xs">Manage activity.</p>
           </a>
           
-          {/* EXTERNAL LINK: PDX Resource Compass */}
           <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Resources</h3>
             <p className="text-gray-500 text-xs">Find local support.</p>
