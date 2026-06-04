@@ -26,6 +26,7 @@ export default function ProfilePage() {
 
   // Toggles (Steering Wheel)
   const [smsOptIn, setSmsOptIn] = useState(false);
+  const [newsletterOptIn, setNewsletterOptIn] = useState(false);
   const [snoozeNotifications, setSnoozeNotifications] = useState(false);
   const [showSkillsPublicly, setShowSkillsPublicly] = useState(true);
   const [isProfilePublic, setIsProfilePublic] = useState(true);
@@ -56,6 +57,7 @@ export default function ProfilePage() {
         setPhoneNumber(data.phone_number || '');
         setFullAddress(data.full_address || '');
         setSmsOptIn(data.sms_opt_in || false);
+        setNewsletterOptIn(data.newsletter_opt_in || false);
         setSnoozeNotifications(data.snooze_notifications || false);
         setShowSkillsPublicly(data.show_skills_publicly ?? true);
         setIsProfilePublic(data.is_profile_public ?? true);
@@ -96,7 +98,7 @@ export default function ProfilePage() {
       .update({ 
         name, neighborhood, bio, languages, skills, 
         full_legal_name: fullLegalName, phone_number: phoneNumber, full_address: fullAddress,
-        sms_opt_in: smsOptIn, snooze_notifications: snoozeNotifications, 
+        sms_opt_in: smsOptIn, newsletter_opt_in: newsletterOptIn, snooze_notifications: snoozeNotifications, 
         show_skills_publicly: showSkillsPublicly, is_profile_public: isProfilePublic
       })
       .eq('id', user.id);
@@ -198,7 +200,7 @@ export default function ProfilePage() {
         {/* 3. Private Details (Admin Only) */}
         <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl shadow-sm">
           <h3 className="text-lg font-bold text-gray-800 border-b pb-2 mb-4 flex items-center gap-2">🔒 Private Details</h3>
-          <p className="text-xs text-gray-500 mb-4">This information is strictly for The Humble Travelers Foundation operations and is never shown publicly.</p>
+          <p className="text-xs text-gray-500 mb-4">This information is strictly for platform operations and is never shown publicly.</p>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Full Legal Name</label>
@@ -212,10 +214,17 @@ export default function ProfilePage() {
               <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
               <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full p-2 border border-gray-300 rounded outline-none" />
             </div>
-            <label className="flex items-center gap-2 cursor-pointer mt-2">
-              <input type="checkbox" checked={smsOptIn} onChange={(e) => setSmsOptIn(e.target.checked)} className="w-4 h-4 text-[#0f766e]" />
-              <span className="text-sm text-gray-700 font-semibold">I opt-in to SMS updates</span>
-            </label>
+            
+            <div className="pt-2 flex flex-col gap-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={smsOptIn} onChange={(e) => setSmsOptIn(e.target.checked)} className="w-5 h-5 text-[#0f766e] rounded focus:ring-[#0f766e]" />
+                <span className="text-sm text-gray-800 font-semibold">I opt-in to SMS updates</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={newsletterOptIn} onChange={(e) => setNewsletterOptIn(e.target.checked)} className="w-5 h-5 text-[#0f766e] rounded focus:ring-[#0f766e]" />
+                <span className="text-sm text-gray-800 font-semibold">Subscribe to the PDX Compass Newsletter</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -235,7 +244,7 @@ export default function ProfilePage() {
               <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition ${snoozeNotifications ? 'transform translate-x-4' : ''}`}></div>
             </div>
           </label>
-          <button onClick={handleDownloadData} className="w-full mt-4 bg-gray-100 text-gray-700 border border-gray-300 font-bold py-2 rounded-lg text-sm hover:bg-gray-200">
+          <button onClick={handleDownloadData} className="w-full mt-4 bg-gray-100 text-gray-700 border border-gray-300 font-bold py-2 rounded-lg text-sm hover:bg-gray-200 transition">
             📥 Download My Data
           </button>
         </div>
