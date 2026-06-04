@@ -23,7 +23,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#cffafe] font-sans pb-12">
+    <div className="min-h-screen bg-[#cffafe] font-sans pb-4">
       {/* Header */}
       <header className="bg-[#164e63] text-white p-4 flex justify-between items-center rounded-b-xl shadow-md">
         <div className="flex items-center gap-3">
@@ -60,7 +60,6 @@ export default function Home() {
 
         {/* Navigation Grid */}
         <div className="grid grid-cols-2 gap-4">
-          
           <a href="/profile" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Profile</h3>
             <p className="text-gray-500 text-xs">Set up your identity.</p>
@@ -76,7 +75,6 @@ export default function Home() {
             <p className="text-gray-500 text-xs">Share inspiration.</p>
           </a>
 
-          {/* NEW: Spotlight Card */}
           <a href="/spotlight" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-pink-500 hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Spotlight</h3>
             <p className="text-gray-500 text-xs">Community wins.</p>
@@ -91,8 +89,18 @@ export default function Home() {
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Resources</h3>
             <p className="text-gray-500 text-xs">Find local support.</p>
           </a>
-
         </div>
+
+        {/* LEGAL FOOTER */}
+        <div className="mt-10 pt-6 border-t border-[#0f766e] border-opacity-20 text-center pb-8">
+          <a href="/legal" className="text-[#0f766e] text-sm font-bold hover:underline">
+            Legal Agreements & Privacy Policy
+          </a>
+          <p className="text-[#0f766e] text-xs opacity-70 mt-2">
+            © {new Date().getFullYear()} The Humble Travelers Foundation
+          </p>
+        </div>
+
       </div>
     </div>
   );
