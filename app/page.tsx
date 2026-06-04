@@ -91,8 +91,11 @@ export default function Home() {
           </a>
         </div>
 
-        {/* LEGAL FOOTER */}
-        <div className="mt-10 pt-6 border-t border-[#0f766e] border-opacity-20 text-center pb-8">
+        {/* LEGAL & SAFETY FOOTER */}
+        <div className="mt-10 pt-6 border-t border-[#0f766e] border-opacity-20 text-center pb-8 flex flex-col gap-2">
+          <a href="/safety" className="text-[#0f766e] text-sm font-bold hover:underline">
+            Community Safety Standards
+          </a>
           <a href="/legal" className="text-[#0f766e] text-sm font-bold hover:underline">
             Legal Agreements & Privacy Policy
           </a>
