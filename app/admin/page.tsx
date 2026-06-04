@@ -26,9 +26,35 @@ export default function AdminDashboard() {
 
       if (userData?.is_admin) {
         setIsAdmin(true);
+        
         // Fetch Flagged Reports
         const { data: reportData } = await supabase.from('reports').select('*');
-        if (reportData) setReports(reportData);
+        
+        if (reportData) {
+          // Take the IDs and fetch the actual post content so the Admin can read it
+          const enrichedReports = await Promise.all(reportData.map(async (report) => {
+            let postData = null;
+            let postType = 'Unknown';
+
+            // Check if it's a request
+            const { data: reqData } = await supabase.from('requests').select('title, description').eq('id', report.post_id).single();
+            if (reqData) {
+              postData = reqData;
+              postType = 'request';
+            } else {
+              // If not a request, check if it's an idea
+              const { data: ideaData } = await supabase.from('community_ideas').select('title, description').eq('id', report.post_id).single();
+              if (ideaData) {
+                postData = ideaData;
+                postType = 'idea';
+              }
+            }
+
+            return { ...report, postData, postType };
+          }));
+          
+          setReports(enrichedReports);
+        }
       } else {
         alert("Access Denied: You do not have administrator privileges.");
         router.push('/');
@@ -42,6 +68,22 @@ export default function AdminDashboard() {
   const dismissReport = async (reportId: string) => {
     await supabase.from('reports').delete().eq('id', reportId);
     setReports(reports.filter(r => r.id !== reportId));
+  };
+
+  const deletePost = async (reportId: string, postId: string, postType: string) => {
+    const confirmDelete = window.confirm("Are you sure you want to permanently delete this post?");
+    if (!confirmDelete) return;
+
+    // Delete from the correct table
+    if (postType === 'request') {
+      await supabase.from('requests').delete().eq('id', postId);
+    } else if (postType === 'idea') {
+      await supabase.from('community_ideas').delete().eq('id', postId);
+    }
+
+    // Dismiss the report now that the post is gone
+    await dismissReport(reportId);
+    alert("Post successfully deleted for violating safety standards.");
   };
 
   if (loading) return <div className="min-h-screen bg-gray-100 p-8 text-center text-[#164e63] font-bold">Verifying Credentials...</div>;
@@ -89,19 +131,37 @@ export default function AdminDashboard() {
           ) : (
             <div className="space-y-4">
               {reports.map((report) => (
-                <div key={report.id} className="bg-white border border-gray-200 p-4 rounded-lg shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div key={report.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
+                  
+                  {/* Context Block */}
                   <div>
-                    <p className="text-sm font-bold text-gray-800">Reported Item ID: {report.post_id || report.id}</p>
-                    <p className="text-xs text-gray-500">Reason: {report.reason || 'Flagged by user for review'}</p>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs text-red-600 font-bold uppercase tracking-wider">Flagged: {report.reason || 'Review Required'}</p>
+                      <span className="text-[10px] text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded">ID: {report.post_id.substring(0,8)}</span>
+                    </div>
+                    
+                    <div className="bg-gray-50 border-l-4 border-gray-300 p-3 rounded-r-md text-sm text-gray-800">
+                      {report.postData ? (
+                        <>
+                          <p className="font-bold mb-1">{report.postData.title}</p>
+                          <p className="opacity-80">{report.postData.description}</p>
+                        </>
+                      ) : (
+                        <p className="italic text-gray-500">Post content could not be loaded. It may have already been deleted by the user.</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2 w-full md:w-auto">
-                    <button onClick={() => dismissReport(report.id)} className="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm">
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button onClick={() => dismissReport(report.id)} className="flex-1 bg-green-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-green-700 text-sm transition">
                       Allow (Dismiss)
                     </button>
-                    <button className="flex-1 md:flex-none bg-red-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-red-700 text-sm">
+                    <button onClick={() => deletePost(report.id, report.post_id, report.postType)} className="flex-1 bg-red-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-red-700 text-sm transition">
                       Delete Post
                     </button>
                   </div>
+
                 </div>
               ))}
             </div>
