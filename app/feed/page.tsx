@@ -4,176 +4,147 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export default function CommunityFeed() {
+export default function FeedPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchRequestsAndUser = async () => {
+    const fetchFeed = async () => {
+      // Get the logged-in user
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
+      if (session) {
+        setCurrentUser(session.user);
+      }
 
-      const { data, error } = await supabase
+      // Fetch only "open" requests for the feed
+      const { data } = await supabase
         .from('requests')
-        .select(`
-          *,
-          requester:users!requester_id(name, completed_tasks)
-        `)
+        .select('*')
         .eq('status', 'open')
         .order('created_at', { ascending: false });
 
-      if (data) {
-        setRequests(data);
-      }
+      if (data) setRequests(data);
       setLoading(false);
     };
 
-    fetchRequestsAndUser();
+    fetchFeed();
   }, []);
 
-  const handleClaim = async (reqId: string) => {
-    if (!user) {
-      alert("Please sign in to help your neighbors!");
+  const handleOfferHelp = async (requestOwnerId: string, requestTitle: string) => {
+    if (!currentUser) {
+      alert("Please sign in to offer help.");
       router.push('/login');
       return;
     }
 
-    const { error } = await supabase.rpc('claim_request', { target_request_id: reqId });
-
-    if (error) {
-      alert(`Error claiming request: ${error.message}`);
-    } else {
-      setRequests(requests.filter(req => req.id !== reqId));
-      alert("Awesome! You've claimed this request. The neighbor has been notified.");
-    }
-  };
-
-  const handleReport = async (reqId: string) => {
-    if (!user) {
-      alert("Please sign in to report a post.");
-      router.push('/login');
+    if (currentUser.id === requestOwnerId) {
+      alert("You can't offer to help yourself on your own request!");
       return;
     }
 
-    const reason = window.prompt("Why are you reporting this post? (e.g., spam, inappropriate, unsafe)");
-    if (!reason) return;
+    const confirmHelp = window.confirm("Would you like to notify this neighbor that you can help?");
+    if (!confirmHelp) return;
 
-    const { error } = await supabase
-      .from('reports')
-      .insert({
-        reporter_id: user.id,
-        reported_request_id: reqId,
-        reason: reason
-      });
+    // Fetch the helper's profile name
+    const { data: helperData } = await supabase
+      .from('users')
+      .select('name')
+      .eq('id', currentUser.id)
+      .maybeSingle();
+    
+    const helperName = helperData?.name || 'A neighbor';
+    const helperEmail = currentUser.email;
 
-    if (error) {
-      alert(`Error submitting report: ${error.message}`);
+    // Draft the notification message
+    const message = `${helperName} (${helperEmail}) has offered to help with your request: "${requestTitle}". Send them an email to coordinate safely!`;
+
+    // Drop it into the user's Alerts inbox
+    const { error } = await supabase.from('notifications').insert({
+      user_id: requestOwnerId,
+      message: message
+    });
+
+    if (!error) {
+      alert("✅ Notification sent! The neighbor will see your offer in their Alerts inbox.");
     } else {
-      alert("Thank you. This post has been reported to the moderation team.");
+      alert("There was an error sending your offer. Please try again.");
     }
   };
 
-  const getUrgencyColor = (urgency: string) => {
-    switch (urgency) {
-      case 'critical': return 'bg-red-100 text-red-800 border-red-200';
-      case 'high': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default: return 'bg-green-100 text-green-800 border-green-200';
-    }
+  const flagPost = async (postId: string) => {
+    const confirmFlag = window.confirm("Report this post for violating community safety standards?");
+    if (!confirmFlag) return;
+
+    await supabase.from('reports').insert({
+      post_id: postId,
+      reason: 'Flagged from Community Feed'
+    });
+    alert("Post flagged. An admin will review it shortly.");
   };
+
+  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Community Feed...</div>;
 
   return (
-    <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
-        <div className="space-x-4">
-          <a href="/ideas" className="text-sm font-bold text-gray-300 hover:text-white transition">Ideas</a>
-          <a href="/profile" className="text-sm font-bold text-gray-300 hover:text-white transition">Profile</a>
-          <a href="/" className="text-sm font-bold text-[#fcd34d] hover:underline">Home</a>
-        </div>
+    <div className="min-h-screen bg-[#f8fafc] font-sans pb-12">
+      <nav className="bg-[#0f766e] text-white p-4 shadow-md rounded-b-xl mb-6 flex justify-between items-center sticky top-0 z-10">
+        <button onClick={() => router.back()} className="text-sm font-bold text-[#fcd34d] hover:underline">← Back</button>
+        <h1 className="text-lg font-bold tracking-widest text-center flex-1">Community Feed</h1>
+        <a href="/" className="text-sm font-bold text-white hover:underline">Home</a>
       </nav>
 
-      <div className="max-w-md mx-auto">
-        <div className="flex justify-between items-end mb-6">
+      <div className="max-w-2xl mx-auto px-4 space-y-6">
+        
+        {/* Feed Header */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#0f766e] flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-[#164e63]">Community Board</h2>
-            <p className="text-gray-600 text-sm">See where your neighbors need a hand.</p>
+            <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Open Requests</h2>
+            <p className="text-gray-600 text-sm">Step up and help a neighbor in need.</p>
           </div>
-          <a href="/ask" className="bg-[#164e63] text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-opacity-90">
-            + Ask
+          <a href="/ask" className="bg-[#0f766e] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm text-center">
+            Ask for<br/>Help
           </a>
         </div>
 
-        <div className="bg-[#fef3c7] border-l-4 border-[#b45309] p-4 mb-6 rounded-r-lg shadow-sm text-sm text-[#78350f]">
-          <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals.
-        </div>
-
-        {loading ? (
-          <p className="text-center text-[#164e63] font-bold mt-10">Loading requests...</p>
-        ) : requests.length === 0 ? (
-          <div className="bg-white p-8 rounded-xl shadow text-center border-t-4 border-[#0f766e]">
-            <p className="text-[#164e63] font-bold mb-2">It's quiet out there!</p>
-            <p className="text-sm text-gray-500">There are no open requests right now. Check back later or post your own.</p>
+        {requests.length === 0 ? (
+          <div className="bg-teal-50 p-6 rounded-lg border border-teal-100 text-center text-teal-800 font-bold text-sm shadow-sm">
+            No open requests right now. The community is caught up!
           </div>
         ) : (
           <div className="space-y-4">
             {requests.map((req) => (
-              <div key={req.id} className="bg-white p-5 rounded-xl shadow-md border-l-4 border-[#0f766e] relative">
+              <div key={req.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
                 
-                <button 
-                  onClick={() => handleReport(req.id)}
-                  className="absolute top-4 right-4 text-xs font-bold text-red-400 hover:text-red-600 uppercase tracking-wider"
-                >
-                  Flag
-                </button>
-
-                <div className="mb-3 pr-10">
-                  <h3 className="font-bold text-lg text-[#164e63] leading-tight">{req.title}</h3>
-                  {/* UPGRADED: Clickable Neighbor Link */}
-                  <a href={`/neighbor/${req.requester_id}`} className="flex items-center gap-2 mt-2 hover:opacity-80 transition cursor-pointer inline-flex">
-                    <p className="text-xs text-[#0f766e] hover:underline font-bold">{req.requester?.name || 'Neighbor'}</p>
-                    {req.requester?.completed_tasks > 0 && (
-                      <span className="bg-[#fef3c7] text-[#b45309] text-[10px] px-2 py-0.5 rounded-full font-bold border border-[#fcd34d]">
-                        🌟 {req.requester.completed_tasks} {req.requester.completed_tasks === 1 ? 'Task' : 'Tasks'} Completed
-                      </span>
-                    )}
+                {/* Top Row: Title & Flag Button */}
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-lg text-[#164e63]">{req.title}</h3>
+                  <button onClick={() => flagPost(req.id)} className="text-gray-400 hover:text-red-500 text-xs font-bold transition" title="Report Post">
+                    🚩 Flag
+                  </button>
+                </div>
+                
+                {/* Description */}
+                <p className="text-sm text-gray-700 mb-4">{req.description}</p>
+                
+                {/* Action Row */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-gray-100 pt-3">
+                  <button 
+                    onClick={() => handleOfferHelp(req.user_id, req.title)} 
+                    className="w-full sm:w-auto bg-[#fcd34d] text-[#78350f] px-5 py-2 rounded-lg font-bold shadow-sm hover:bg-opacity-90 text-sm transition flex items-center justify-center gap-2"
+                  >
+                    <span>🤝</span> Offer to Help
+                  </button>
+                  <a href={`/neighbor/${req.user_id}`} className="text-xs text-[#0f766e] font-bold hover:underline self-end sm:self-auto">
+                    View Neighbor Profile
                   </a>
                 </div>
-                
-                <p className="text-gray-600 text-sm mb-4">{req.description}</p>
-                
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded border border-gray-200 capitalize">
-                    {req.category_group}
-                  </span>
-                  <span className={`text-xs px-2 py-1 rounded border capitalize font-semibold ${getUrgencyColor(req.urgency)}`}>
-                    {req.urgency} Urgency
-                  </span>
-                  {req.location_label && (
-                    <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded border border-blue-200">
-                      📍 {req.location_label}
-                    </span>
-                  )}
-                </div>
 
-                {user?.id === req.requester_id ? (
-                  <button disabled className="w-full bg-gray-200 text-gray-500 font-bold py-2 rounded-lg text-sm cursor-not-allowed">
-                    This is your request
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => handleClaim(req.id)}
-                    className="w-full bg-[#fcd34d] text-[#164e63] font-bold py-2 rounded-lg text-sm hover:bg-opacity-90 transition shadow-sm"
-                  >
-                    Offer to Help
-                  </button>
-                )}
               </div>
             ))}
           </div>
         )}
+
       </div>
     </div>
   );
