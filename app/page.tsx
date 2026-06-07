@@ -38,9 +38,9 @@ export default function Home() {
       {/* Header */}
       <header className="bg-[#164e63] text-white p-4 flex justify-between items-center rounded-b-xl shadow-md">
         <div className="flex items-center gap-3">
-          {/* CORRECT LOGO PATH */}
+          {/* FIXED LOGO PATH - Pointing to your main domain */}
           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-sm">
-             <img src="/assets/images/thtf-compass-logo.png" alt="PDX Compass Logo" className="w-full h-full object-cover" />
+             <img src="https://humbletravelers.org/assets/images/thtf-compass-logo.png" alt="PDX Compass Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-xl font-bold tracking-widest leading-tight">PDX<br/>Compass</h1>
         </div>
