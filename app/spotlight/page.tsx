@@ -2,88 +2,77 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function SpotlightPage() {
-  const [spotlights, setSpotlights] = useState<any[]>([]);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchSpotlights = async () => {
+    const fetchSpotlight = async () => {
       const { data, error } = await supabase
-        .from('spotlights')
+        .from('spotlight')
         .select('*')
-        .order('completed_at', { ascending: false });
-        
-      if (data) setSpotlights(data);
+        .order('created_at', { ascending: false });
+
+      if (data) setAnnouncements(data);
       setLoading(false);
     };
 
-    fetchSpotlights();
+    fetchSpotlight();
   }, []);
 
+  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Spotlight...</div>;
+
   return (
-    <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-widest text-[#fcd34d]">Neighborhood Spotlight</h1>
-        <div className="space-x-4">
-          <a href="/feed" className="text-sm font-bold text-gray-300 hover:text-white transition">Feed</a>
-          <a href="/" className="text-sm font-bold text-gray-300 hover:text-white transition">Home</a>
-        </div>
+    <div className="min-h-screen bg-[#fdf2f8] p-4 font-sans pb-12">
+      <nav className="bg-pink-600 text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center sticky top-0 z-10">
+        <button onClick={() => router.back()} className="text-sm font-bold text-pink-200 hover:underline">← Back</button>
+        <h1 className="text-xl font-bold tracking-widest text-center flex-1">Spotlight</h1>
+        <a href="/" className="text-sm font-bold text-white hover:underline">Home</a>
       </nav>
 
-      <div className="max-w-md mx-auto">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-[#164e63]">The Good News Feed</h2>
-          <p className="text-gray-600 text-sm">Celebrating community victories and upcoming events.</p>
+      <div className="max-w-2xl mx-auto space-y-6">
+        
+        {/* Header Hero */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-pink-500 text-center">
+          <span className="text-4xl block mb-2">📣</span>
+          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">Community Highlights</h2>
+          <p className="text-gray-600 text-sm">Official updates, events, and wins from The Humble Travelers Foundation.</p>
         </div>
 
-        {loading ? (
-          <p className="text-center text-[#164e63] font-bold mt-10">Loading stories...</p>
-        ) : spotlights.length === 0 ? (
-          <div className="bg-white p-8 rounded-xl shadow text-center border-t-4 border-[#0f766e]">
-            <p className="text-[#164e63] font-bold mb-2">The spotlight is warming up!</p>
-            <p className="text-sm text-gray-500">Check back soon for neighborhood success stories and events.</p>
+        {announcements.length === 0 ? (
+          <div className="bg-pink-50 p-6 rounded-lg border border-pink-100 text-center text-pink-800 font-bold text-sm shadow-sm">
+            No official announcements right now. Check back soon!
           </div>
         ) : (
-          <div className="space-y-6">
-            {spotlights.map((post) => (
-              <div 
-                key={post.id} 
-                className={`bg-white p-6 rounded-xl shadow-md border-t-4 ${post.post_type === 'admin_event' ? 'border-[#b45309]' : 'border-[#0f766e]'}`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-2xl">
-                    {post.post_type === 'admin_event' ? '📢' : '🌟'}
-                  </span>
-                  <span className={`text-xs font-bold uppercase tracking-wider ${post.post_type === 'admin_event' ? 'text-[#b45309]' : 'text-[#0f766e]'}`}>
-                    {post.post_type === 'admin_event' ? 'Community Event' : 'Neighbor Story'}
+          <div className="space-y-4">
+            {announcements.map((post) => (
+              <div key={post.id} className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition flex flex-col gap-3">
+                
+                {/* Post Header */}
+                <div className="flex justify-between items-start border-b border-gray-100 pb-3">
+                  <h3 className="font-bold text-xl text-[#164e63] pr-2">{post.title}</h3>
+                  <span className="text-[10px] text-pink-600 font-bold uppercase tracking-wider bg-pink-50 border border-pink-100 px-2 py-1 rounded whitespace-nowrap">
+                    Official
                   </span>
                 </div>
                 
-                {post.title && (
-                  <h3 className="font-bold text-xl text-[#164e63] leading-tight mb-2">
-                    {post.title}
-                  </h3>
-                )}
+                {/* Post Content */}
+                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                 
-                <p className="text-gray-700 text-base mb-4 whitespace-pre-wrap leading-relaxed">
-                  {post.story}
-                </p>
-                
-                {post.image_url && (
-                  <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden mb-4 border border-gray-200">
-                    <img src={post.image_url} alt="Spotlight" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                
-                <div className="pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500 font-semibold">
-                  <span>📍 {post.neighborhood || 'Portland'}</span>
-                  <span>{new Date(post.completed_at).toLocaleDateString()}</span>
+                {/* Post Footer */}
+                <div className="pt-3 flex justify-between items-center text-[10px] text-gray-400 font-bold mt-2 uppercase tracking-wider">
+                  <span>{post.author_name}</span>
+                  <span>{new Date(post.created_at).toLocaleDateString()}</span>
                 </div>
+
               </div>
             ))}
           </div>
         )}
+
       </div>
     </div>
   );
