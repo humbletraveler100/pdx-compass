@@ -35,10 +35,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#cffafe] font-sans pb-4">
+      {/* Header */}
       <header className="bg-[#164e63] text-white p-4 flex justify-between items-center rounded-b-xl shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden">
-             <span className="text-[#164e63] font-bold text-xs px-1 text-center leading-none">PDX</span>
+          {/* CORRECT LOGO PATH */}
+          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-sm">
+             <img src="/assets/images/thtf-compass-logo.png" alt="PDX Compass Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-xl font-bold tracking-widest leading-tight">PDX<br/>Compass</h1>
         </div>
@@ -49,6 +51,7 @@ export default function Home() {
         )}
       </header>
 
+      {/* Hero Section */}
       <div className="px-6 pt-10 pb-8 text-center">
         <h2 className="text-3xl font-extrabold text-[#164e63] leading-tight mb-4">
           We Are All Travelers Shaping Stronger Communities Together
@@ -62,10 +65,12 @@ export default function Home() {
       </div>
 
       <div className="max-w-md mx-auto px-4 space-y-6">
+        {/* Safety Notice */}
         <div className="bg-[#fed7aa] p-5 rounded-xl text-sm text-[#78350f] shadow-sm">
           <strong>Safety Notice:</strong> The Humble Travelers Foundation requires all neighbors to verify their identity before exchanging services.
         </div>
 
+        {/* Navigation Grid */}
         <div className="grid grid-cols-2 gap-4">
           
           <a href="/alerts" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 hover:shadow-md transition flex flex-col relative">
@@ -105,6 +110,7 @@ export default function Home() {
           
         </div>
 
+        {/* LEGAL & SAFETY FOOTER */}
         <div className="mt-10 pt-6 border-t border-[#0f766e] border-opacity-20 text-center pb-8 flex flex-col gap-2">
           <a href="/rewards" className="text-[#164e63] text-sm font-extrabold hover:underline flex items-center justify-center gap-1">
             🎁 Monthly Reward Drawing Rules
