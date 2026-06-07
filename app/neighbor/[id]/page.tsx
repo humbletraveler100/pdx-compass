@@ -11,15 +11,22 @@ export default function NeighborProfile({ params }: { params: { id: string } }) 
 
   useEffect(() => {
     const fetchNeighbor = async () => {
-      // Fetch the public details of the user matching the ID in the URL
-      const { data, error } = await supabase
+      // 1. Get the currently logged-in user
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserId = session?.user?.id;
+
+      // 2. Fetch the profile being requested
+      const { data } = await supabase
         .from('users')
-        .select('id, name, bio, neighborhood, completed_tasks')
+        .select('*')
         .eq('id', params.id)
-        .maybeSingle();
+        .single();
 
       if (data) {
-        setNeighbor(data);
+        // Show profile IF it belongs to the logged-in user, OR if they set it to Public
+        if (currentUserId === params.id || data.is_profile_public !== false) {
+          setNeighbor(data);
+        }
       }
       setLoading(false);
     };
@@ -27,82 +34,69 @@ export default function NeighborProfile({ params }: { params: { id: string } }) 
     fetchNeighbor();
   }, [params.id]);
 
-  if (loading) return <div className="min-h-screen bg-gray-100 p-8 text-center text-[#164e63] font-bold">Loading Profile...</div>;
-  
-  if (!neighbor) return (
-    <div className="min-h-screen bg-gray-100 p-8 text-center flex flex-col items-center justify-center">
-      <h1 className="text-2xl font-bold text-gray-800 mb-4">Neighbor not found</h1>
-      <p className="text-gray-500 mb-6">This account may have been removed or deactivated.</p>
-      <button onClick={() => router.back()} className="bg-[#164e63] text-white px-6 py-2 rounded-full font-bold">Go Back</button>
-    </div>
-  );
+  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Looking up neighbor...</div>;
 
-  // Impact Dashboard Logic (Milestones instead of competitive leaderboards)
-  const tasks = neighbor.completed_tasks || 0;
-  let rank = "New Neighbor";
-  let badgeIcon = "🌱";
-  
-  if (tasks >= 1) { rank = "Community Helper"; badgeIcon = "🤝"; }
-  if (tasks >= 5) { rank = "Neighborhood Hero"; badgeIcon = "🌟"; }
-  if (tasks >= 15) { rank = "Local Legend"; badgeIcon = "👑"; }
+  if (!neighbor) {
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4">
+        <h1 className="text-2xl font-bold text-[#164e63] mb-2">Neighbor not found</h1>
+        <p className="text-gray-500 mb-6 text-center">This account may have been removed, deactivated, or set to private.</p>
+        <button onClick={() => router.back()} className="bg-[#164e63] text-white px-6 py-2 rounded-lg font-bold">Go Back</button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-12">
-      {/* Header */}
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-b-xl mb-6 flex justify-between items-center sticky top-0 z-10">
+      <nav className="bg-[#0f766e] text-white p-4 shadow-md rounded-b-xl mb-6 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-[#fcd34d] hover:underline">← Back</button>
         <h1 className="text-lg font-bold tracking-widest text-center flex-1">Neighbor Profile</h1>
-        <div className="w-12"></div>
+        <div className="w-10"></div> {/* Spacer for alignment */}
       </nav>
 
-      <div className="max-w-xl mx-auto px-4 space-y-6">
+      <div className="max-w-md mx-auto px-4 space-y-6">
         
-        {/* Profile Card */}
-        <div className="bg-white rounded-xl shadow-md overflow-hidden border-t-4 border-[#0f766e]">
-          <div className="bg-[#e0f2fe] p-6 text-center flex flex-col items-center">
-            <div className="w-24 h-24 bg-[#164e63] text-white rounded-full flex items-center justify-center text-4xl font-bold mb-3 shadow-lg border-4 border-white">
-              {neighbor.name ? neighbor.name.charAt(0).toUpperCase() : '?'}
-            </div>
-            <h2 className="text-2xl font-extrabold text-[#164e63]">{neighbor.name || 'Anonymous Neighbor'}</h2>
-            {neighbor.neighborhood && (
-              <p className="text-[#0f766e] font-bold text-sm mt-1 flex items-center gap-1 justify-center">
-                📍 {neighbor.neighborhood}
-              </p>
+        {/* Profile Hero */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#0f766e] flex flex-col items-center text-center">
+          <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-[#fcd34d] overflow-hidden mb-4 shadow-sm flex items-center justify-center">
+            {neighbor.avatar_url ? (
+              <img src={neighbor.avatar_url} alt={neighbor.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-gray-400 font-bold text-3xl">{neighbor.name?.charAt(0) || '?'}</span>
             )}
           </div>
+          <h2 className="text-2xl font-extrabold text-[#164e63] mb-1">{neighbor.name || 'Anonymous Neighbor'}</h2>
           
-          <div className="p-6">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">About</h3>
-            <p className="text-gray-700 text-sm leading-relaxed">
-              {neighbor.bio || "This neighbor hasn't written a bio yet, but they are an active part of the Compass community!"}
-            </p>
-          </div>
+          {neighbor.neighborhood && (
+            <span className="bg-teal-50 text-[#0f766e] px-3 py-1 rounded-full text-xs font-bold tracking-wide border border-teal-100 mt-2">
+              📍 {neighbor.neighborhood}
+            </span>
+          )}
         </div>
 
-        {/* Impact Dashboard */}
-        <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-[#fcd34d]">
-          <h3 className="text-lg font-extrabold text-gray-800 mb-4 flex items-center gap-2">
-            🌟 Community Impact
-          </h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {/* Task Counter */}
-            <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-100 flex flex-col justify-center transition hover:shadow-md">
-              <span className="text-3xl font-extrabold text-blue-600 mb-1">{tasks}</span>
-              <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Tasks Completed</span>
-            </div>
-
-            {/* Rank Badge */}
-            <div className="bg-yellow-50 rounded-lg p-4 text-center border border-yellow-100 flex flex-col justify-center items-center transition hover:shadow-md">
-              <span className="text-3xl mb-1">{badgeIcon}</span>
-              <span className="text-[10px] font-bold text-yellow-800 uppercase tracking-wider">{rank}</span>
-            </div>
+        {/* Bio */}
+        {neighbor.bio && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">About Me</h3>
+            <p className="text-gray-700 leading-relaxed text-sm">{neighbor.bio}</p>
           </div>
-          
-          <p className="text-center text-xs text-gray-500 mt-5 font-medium italic">
-            "We are all travelers shaping stronger communities together."
-          </p>
-        </div>
+        )}
+
+        {/* Skills (Respects the Show/Hide Skills toggle) */}
+        {neighbor.show_skills_publicly !== false && neighbor.skills && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Skills & Assets</h3>
+            <p className="text-gray-700 leading-relaxed text-sm">{neighbor.skills}</p>
+          </div>
+        )}
+        
+        {/* Languages */}
+        {neighbor.languages && (
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Languages</h3>
+            <p className="text-gray-700 leading-relaxed text-sm">{neighbor.languages}</p>
+          </div>
+        )}
 
       </div>
     </div>
