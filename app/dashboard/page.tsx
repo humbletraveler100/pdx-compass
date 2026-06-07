@@ -9,6 +9,7 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [completedTasks, setCompletedTasks] = useState(0);
   
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [helperEmail, setHelperEmail] = useState('');
@@ -23,6 +24,15 @@ export default function DashboardPage() {
         return;
       }
       setUser(session.user);
+
+      // Fetch user's completed tasks for the Journey Tracker
+      const { data: userData } = await supabase
+        .from('users')
+        .select('completed_tasks')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (userData) setCompletedTasks(userData.completed_tasks || 0);
 
       // Fetch user's requests
       const { data } = await supabase
@@ -116,6 +126,16 @@ export default function DashboardPage() {
               </span>
             )}
           </a>
+        </div>
+
+        {/* MY JOURNEY TRACKER */}
+        <div className="bg-[#fef3c7] p-6 rounded-xl shadow-sm border border-[#fde047]">
+          <h2 className="text-xl font-extrabold text-[#b45309] mb-4 flex items-center gap-2">
+            🌟 My Journey
+          </h2>
+          <p className="text-[#92400e] text-lg flex items-center gap-2">
+            <span className="text-green-600 font-extrabold text-xl">✓</span> {completedTasks} Tasks Completed
+          </p>
         </div>
         
         {/* OPEN REQUESTS */}
