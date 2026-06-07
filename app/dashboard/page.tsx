@@ -8,8 +8,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   
-  // State for the fulfillment process
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [helperEmail, setHelperEmail] = useState('');
 
@@ -24,7 +24,7 @@ export default function DashboardPage() {
       }
       setUser(session.user);
 
-      // Fetch the user's own requests
+      // Fetch user's requests
       const { data } = await supabase
         .from('requests')
         .select('*')
@@ -32,6 +32,16 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false });
       
       if (data) setRequests(data);
+
+      // Fetch unread alerts count
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('is_read', false);
+      
+      if (count) setUnreadCount(count);
+
       setLoading(false);
     };
 
@@ -42,7 +52,6 @@ export default function DashboardPage() {
     let helperId = null;
 
     if (helperEmail.trim() !== '') {
-      // Look up the helper by email to ensure they get their raffle entry
       const { data: helperData, error } = await supabase
         .from('users')
         .select('id')
@@ -56,7 +65,6 @@ export default function DashboardPage() {
       helperId = helperData.id;
     }
 
-    // Update the request status and attach the helper
     const { error: updateError } = await supabase
       .from('requests')
       .update({ 
@@ -93,7 +101,24 @@ export default function DashboardPage() {
       </nav>
 
       <div className="max-w-2xl mx-auto space-y-6">
+
+        {/* ALERTS INBOX BANNER */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-red-500 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-800 mb-1">Activity Alerts</h2>
+            <p className="text-gray-600 text-sm">Check your messages and updates.</p>
+          </div>
+          <a href="/alerts" className="relative bg-red-50 text-red-700 px-5 py-2 rounded-lg font-bold border border-red-200 hover:bg-red-100 transition shadow-sm text-sm">
+            Inbox
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse shadow-md">
+                {unreadCount}
+              </span>
+            )}
+          </a>
+        </div>
         
+        {/* OPEN REQUESTS */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#b45309]">
           <h2 className="text-2xl font-extrabold text-gray-800 mb-2">My Open Requests</h2>
           <p className="text-gray-600 text-sm mb-4">Manage the help you have asked for. Don't forget to mark tasks as fulfilled so your neighbors can earn their Volunteer Raffle entries!</p>
@@ -108,11 +133,9 @@ export default function DashboardPage() {
             {requests.map((task) => (
               <div key={task.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
                 
-                {/* Task Content */}
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-800">{task.title}</h3>
-                    {/* Status Badges */}
                     {task.status === 'open' && <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Open</span>}
                     {task.status === 'pending_approval' && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Pending Verification</span>}
                     {task.status === 'verified' && <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Completed</span>}
@@ -120,7 +143,6 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-600">{task.description}</p>
                 </div>
 
-                {/* Open Status Actions */}
                 {task.status === 'open' && completingTaskId !== task.id && (
                   <div className="flex gap-2 pt-2 border-t border-gray-100">
                     <button onClick={() => setCompletingTaskId(task.id)} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm transition">
@@ -132,7 +154,6 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Fulfillment Form Modal */}
                 {completingTaskId === task.id && (
                   <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mt-2">
                     <p className="text-sm font-bold text-[#164e63] mb-2">Who helped you with this?</p>

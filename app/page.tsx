@@ -38,7 +38,6 @@ export default function Home() {
       {/* Header */}
       <header className="bg-[#164e63] text-white p-4 flex justify-between items-center rounded-b-xl shadow-md">
         <div className="flex items-center gap-3">
-          {/* FIXED LOGO PATH - Pointing to your main domain */}
           <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-sm">
              <img src="https://humbletravelers.org/assets/images/thtf-compass-logo.png" alt="PDX Compass Logo" className="w-full h-full object-cover" />
           </div>
@@ -73,17 +72,7 @@ export default function Home() {
         {/* Navigation Grid */}
         <div className="grid grid-cols-2 gap-4">
           
-          <a href="/alerts" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-red-500 hover:shadow-md transition flex flex-col relative">
-            {unreadCount > 0 && (
-              <span className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Alerts</h3>
-            <p className="text-gray-500 text-xs">Activity inbox.</p>
-          </a>
-
-          <a href="/profile" className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition flex flex-col">
+          <a href="/profile" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Profile</h3>
             <p className="text-gray-500 text-xs">Set up your identity.</p>
           </a>
@@ -98,14 +87,24 @@ export default function Home() {
             <p className="text-gray-500 text-xs">Share inspiration.</p>
           </a>
 
-          <a href="/dashboard" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#b45309] hover:shadow-md transition flex flex-col">
+          <a href="/spotlight" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-pink-500 hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Spotlight</h3>
+            <p className="text-gray-500 text-xs">Community wins.</p>
+          </a>
+
+          <a href="/dashboard" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#b45309] hover:shadow-md transition flex flex-col relative">
+            {unreadCount > 0 && (
+              <span className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
+                {unreadCount}
+              </span>
+            )}
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Dashboard</h3>
             <p className="text-gray-500 text-xs">Manage activity.</p>
           </a>
 
-          <a href="/spotlight" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-pink-500 hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Spotlight</h3>
-            <p className="text-gray-500 text-xs">Community wins.</p>
+          <a href="http://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-indigo-500 hover:shadow-md transition flex flex-col">
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Resources</h3>
+            <p className="text-gray-500 text-xs">Find local support.</p>
           </a>
           
         </div>
