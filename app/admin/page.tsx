@@ -8,6 +8,7 @@ export default function AdminDashboard() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<any[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,18 +28,15 @@ export default function AdminDashboard() {
       if (userData?.is_admin) {
         setIsAdmin(true);
         
-        // Fetch Flagged Reports
+        // 1. Fetch Flagged Reports (With Safeguards)
         const { data: reportData } = await supabase.from('reports').select('*');
-        
         if (reportData) {
           const enrichedReports = await Promise.all(reportData.map(async (report) => {
             let postData = null;
             let postType = 'Unknown';
-            // Safeguard: Use post_id if it exists, otherwise fallback to id
             const targetId = report.post_id || report.id; 
 
             if (targetId) {
-                // Use maybeSingle() instead of single() so it doesn't crash if the post was already deleted
                 const { data: reqData } = await supabase.from('requests').select('title, description').eq('id', targetId).maybeSingle();
                 if (reqData) {
                   postData = reqData;
@@ -51,12 +49,30 @@ export default function AdminDashboard() {
                   }
                 }
             }
-
             return { ...report, postData, postType, targetId };
           }));
-          
           setReports(enrichedReports);
         }
+
+        // 2. Fetch Tasks Pending Verification
+        const { data: tasksData } = await supabase
+          .from('requests')
+          .select('*')
+          .eq('status', 'pending_approval');
+        
+        if (tasksData) {
+          // Fetch the names of the helpers so the admin knows who they are rewarding
+          const enrichedTasks = await Promise.all(tasksData.map(async (task) => {
+            let helperName = "Unknown Neighbor";
+            if (task.helper_id) {
+              const { data: helperData } = await supabase.from('users').select('name').eq('id', task.helper_id).maybeSingle();
+              if (helperData?.name) helperName = helperData.name;
+            }
+            return { ...task, helperName };
+          }));
+          setPendingTasks(enrichedTasks);
+        }
+
       } else {
         alert("Access Denied: You do not have administrator privileges.");
         router.push('/');
@@ -67,6 +83,7 @@ export default function AdminDashboard() {
     checkAdminAndFetchData();
   }, [router]);
 
+  // --- REPORT FUNCTIONS ---
   const dismissReport = async (reportId: string) => {
     await supabase.from('reports').delete().eq('id', reportId);
     setReports(reports.filter(r => r.id !== reportId));
@@ -84,6 +101,38 @@ export default function AdminDashboard() {
 
     await dismissReport(reportId);
     alert("Post successfully deleted for violating safety standards.");
+  };
+
+  // --- TASK VERIFICATION FUNCTIONS ---
+  const approveTask = async (taskId: string, helperId: string) => {
+    const confirmApprove = window.confirm("Approve this task and award a Volunteer Raffle entry to the helper?");
+    if (!confirmApprove) return;
+
+    try {
+      // 1. Mark task as verified
+      await supabase.from('requests').update({ status: 'verified' }).eq('id', taskId);
+
+      // 2. Give the helper their badge/raffle entry (increment completed_tasks)
+      if (helperId) {
+        const { data: helperData } = await supabase.from('users').select('completed_tasks').eq('id', helperId).single();
+        const currentScore = helperData?.completed_tasks || 0;
+        await supabase.from('users').update({ completed_tasks: currentScore + 1 }).eq('id', helperId);
+      }
+
+      // 3. Remove from queue
+      setPendingTasks(pendingTasks.filter(t => t.id !== taskId));
+      alert("✅ Task verified! The helper has been awarded their raffle entry.");
+    } catch (error) {
+      alert("There was an error verifying this task. Please try again.");
+    }
+  };
+
+  const rejectTask = async (taskId: string) => {
+    const confirmReject = window.confirm("Reject this verification? The task will be sent back to the open community feed.");
+    if (!confirmReject) return;
+
+    await supabase.from('requests').update({ status: 'open', helper_id: null }).eq('id', taskId);
+    setPendingTasks(pendingTasks.filter(t => t.id !== taskId));
   };
 
   if (loading) return <div className="min-h-screen bg-gray-100 p-8 text-center text-[#164e63] font-bold">Verifying Credentials...</div>;
@@ -114,9 +163,38 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-600">
           <h2 className="text-2xl font-extrabold text-gray-800 mb-2">✅ Task Verification & Raffles</h2>
           <p className="text-gray-600 text-sm mb-4">Review completed community tasks to award badges and Volunteer Raffle entries.</p>
-          <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center text-blue-800 font-bold text-sm">
-            Verification Queue is currently empty.
-          </div>
+          
+          {pendingTasks.length === 0 ? (
+            <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center text-blue-800 font-bold text-sm">
+              Verification Queue is currently empty.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingTasks.map((task) => (
+                <div key={task.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
+                  <div>
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">Pending Verification</p>
+                    </div>
+                    <div className="bg-gray-50 border-l-4 border-blue-300 p-3 rounded-r-md text-sm text-gray-800 mb-3">
+                      <p className="font-bold mb-1">"{task.title}"</p>
+                      <p className="opacity-80 text-xs">{task.description}</p>
+                    </div>
+                    <p className="text-sm text-gray-700"><strong>Helper to Reward:</strong> {task.helperName}</p>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <button onClick={() => approveTask(task.id, task.helper_id)} className="flex-1 bg-blue-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-blue-700 text-sm transition">
+                      Approve & Award Entry
+                    </button>
+                    <button onClick={() => rejectTask(task.id)} className="flex-1 bg-gray-200 text-gray-700 border border-gray-300 px-4 py-3 rounded font-bold shadow hover:bg-gray-300 text-sm transition">
+                      Reject (Send Back)
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Flagged Content */}
@@ -132,15 +210,11 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               {reports.map((report) => (
                 <div key={report.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
-                  
-                  {/* Context Block */}
                   <div>
                     <div className="flex justify-between items-start mb-2">
                       <p className="text-xs text-red-600 font-bold uppercase tracking-wider">Flagged: {report.reason || 'Review Required'}</p>
-                      {/* Crash fix: check if targetId exists before trying to substring it */}
                       <span className="text-[10px] text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded">ID: {report.targetId ? report.targetId.substring(0,8) : 'Unknown'}</span>
                     </div>
-                    
                     <div className="bg-gray-50 border-l-4 border-gray-300 p-3 rounded-r-md text-sm text-gray-800">
                       {report.postData ? (
                         <>
@@ -152,8 +226,6 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   </div>
-
-                  {/* Action Buttons */}
                   <div className="flex gap-2">
                     <button onClick={() => dismissReport(report.id)} className="flex-1 bg-green-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-green-700 text-sm transition">
                       Allow (Dismiss)
@@ -162,7 +234,6 @@ export default function AdminDashboard() {
                       Delete Post
                     </button>
                   </div>
-
                 </div>
               ))}
             </div>
