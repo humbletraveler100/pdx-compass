@@ -2,140 +2,106 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
-export default function NeighborProfile() {
-  const { id } = useParams();
-  const router = useRouter();
+export default function NeighborProfile({ params }: { params: { id: string } }) {
   const [neighbor, setNeighbor] = useState<any>(null);
-  const [recentIdeas, setRecentIdeas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchNeighborData = async () => {
-      if (!id) return;
-      
-      // 1. Fetch the Neighbor's Profile Info
-      const { data: userData } = await supabase
+    const fetchNeighbor = async () => {
+      // Fetch the public details of the user matching the ID in the URL
+      const { data, error } = await supabase
         .from('users')
-        .select('id, name, avatar_url, neighborhood, bio, skills, show_skills_publicly, is_profile_public, completed_tasks')
-        .eq('id', id)
-        .single();
+        .select('id, name, bio, neighborhood, completed_tasks')
+        .eq('id', params.id)
+        .maybeSingle();
 
-      if (userData) {
-        setNeighbor(userData);
-        
-        // 2. Fetch Contribution Stream ONLY if profile is public
-        if (userData.is_profile_public) {
-          const { data: ideasData } = await supabase
-            .from('community_ideas')
-            .select('id, title, created_at')
-            .eq('author_id', id)
-            .order('created_at', { ascending: false })
-            .limit(3);
-            
-          if (ideasData) setRecentIdeas(ideasData);
-        }
+      if (data) {
+        setNeighbor(data);
       }
       setLoading(false);
     };
 
-    fetchNeighborData();
-  }, [id]);
+    fetchNeighbor();
+  }, [params.id]);
 
-  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Neighbor...</div>;
-  if (!neighbor) return <div className="p-8 text-center text-gray-500 font-bold">Neighbor not found.</div>;
+  if (loading) return <div className="min-h-screen bg-gray-100 p-8 text-center text-[#164e63] font-bold">Loading Profile...</div>;
+  
+  if (!neighbor) return (
+    <div className="min-h-screen bg-gray-100 p-8 text-center flex flex-col items-center justify-center">
+      <h1 className="text-2xl font-bold text-gray-800 mb-4">Neighbor not found</h1>
+      <p className="text-gray-500 mb-6">This account may have been removed or deactivated.</p>
+      <button onClick={() => router.back()} className="bg-[#164e63] text-white px-6 py-2 rounded-full font-bold">Go Back</button>
+    </div>
+  );
 
-  // PRIVACY LOCK: Stop rendering if they turned off their public profile
-  if (!neighbor.is_profile_public) {
-    return (
-      <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans flex flex-col items-center pt-20">
-        <div className="w-24 h-24 rounded-full bg-gray-300 mb-4 flex items-center justify-center text-4xl shadow-inner">🔒</div>
-        <h2 className="text-2xl font-bold text-[#164e63] mb-2">{neighbor.name || 'Anonymous Neighbor'}</h2>
-        <p className="text-gray-600 text-sm font-medium">This neighbor has chosen to keep their profile private.</p>
-        <button onClick={() => router.back()} className="mt-6 text-[#0f766e] font-bold underline">Return to Feed</button>
-      </div>
-    );
-  }
+  // Impact Dashboard Logic (Milestones instead of competitive leaderboards)
+  const tasks = neighbor.completed_tasks || 0;
+  let rank = "New Neighbor";
+  let badgeIcon = "🌱";
+  
+  if (tasks >= 1) { rank = "Community Helper"; badgeIcon = "🤝"; }
+  if (tasks >= 5) { rank = "Neighborhood Hero"; badgeIcon = "🌟"; }
+  if (tasks >= 15) { rank = "Local Legend"; badgeIcon = "👑"; }
 
   return (
-    <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
-      {/* Navigation */}
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
+    <div className="min-h-screen bg-[#f8fafc] font-sans pb-12">
+      {/* Header */}
+      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-b-xl mb-6 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-[#fcd34d] hover:underline">← Back</button>
-        <h1 className="text-xl font-bold tracking-widest text-center flex-1">Neighbor</h1>
-        <div className="w-12"></div> {/* Visual Spacer */}
+        <h1 className="text-lg font-bold tracking-widest text-center flex-1">Neighbor Profile</h1>
+        <div className="w-12"></div>
       </nav>
 
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-w-xl mx-auto px-4 space-y-6">
         
-        {/* Core Identity Card */}
-        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-[#0f766e] text-center relative mt-8">
-          <button className="absolute top-4 right-4 text-[#0f766e] text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200 hover:bg-blue-100 transition shadow-sm">
-            💬 Message
-          </button>
-          
-          <div className="w-28 h-28 rounded-full bg-gray-200 border-4 border-white shadow-lg overflow-hidden mx-auto -mt-14 mb-4 flex items-center justify-center relative z-10 bg-white">
-            {neighbor.avatar_url ? (
-              <img src={neighbor.avatar_url} alt={neighbor.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-gray-400 font-bold text-4xl">{neighbor.name?.charAt(0) || '?'}</span>
+        {/* Profile Card */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden border-t-4 border-[#0f766e]">
+          <div className="bg-[#e0f2fe] p-6 text-center flex flex-col items-center">
+            <div className="w-24 h-24 bg-[#164e63] text-white rounded-full flex items-center justify-center text-4xl font-bold mb-3 shadow-lg border-4 border-white">
+              {neighbor.name ? neighbor.name.charAt(0).toUpperCase() : '?'}
+            </div>
+            <h2 className="text-2xl font-extrabold text-[#164e63]">{neighbor.name || 'Anonymous Neighbor'}</h2>
+            {neighbor.neighborhood && (
+              <p className="text-[#0f766e] font-bold text-sm mt-1 flex items-center gap-1 justify-center">
+                📍 {neighbor.neighborhood}
+              </p>
             )}
           </div>
           
-          <h2 className="text-2xl font-bold text-[#164e63] mb-1">{neighbor.name}</h2>
-          <p className="text-sm font-semibold text-gray-500 mb-4">📍 {neighbor.neighborhood || 'Portland Resident'}</p>
+          <div className="p-6">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">About</h3>
+            <p className="text-gray-700 text-sm leading-relaxed">
+              {neighbor.bio || "This neighbor hasn't written a bio yet, but they are an active part of the Compass community!"}
+            </p>
+          </div>
+        </div>
+
+        {/* Impact Dashboard */}
+        <div className="bg-white rounded-xl shadow-md p-6 border-t-4 border-[#fcd34d]">
+          <h3 className="text-lg font-extrabold text-gray-800 mb-4 flex items-center gap-2">
+            🌟 Community Impact
+          </h3>
           
-          {neighbor.bio && (
-            <div className="bg-gray-50 p-4 rounded-lg italic text-gray-700 text-sm border border-gray-100 shadow-inner">
-              "{neighbor.bio}"
+          <div className="grid grid-cols-2 gap-4">
+            {/* Task Counter */}
+            <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-100 flex flex-col justify-center transition hover:shadow-md">
+              <span className="text-3xl font-extrabold text-blue-600 mb-1">{tasks}</span>
+              <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Tasks Completed</span>
             </div>
-          )}
-        </div>
 
-        {/* Visual Impact Dashboard */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-[#fef3c7] p-4 rounded-xl border border-[#fcd34d] shadow-sm text-center">
-            <span className="text-3xl block mb-1">🌟</span>
-            <span className="text-2xl font-bold text-[#b45309] block">{neighbor.completed_tasks || 0}</span>
-            <span className="text-[10px] font-bold text-[#78350f] uppercase tracking-wider">Completed Tasks</span>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 shadow-sm text-center">
-            <span className="text-3xl block mb-1">🔥</span>
-            <span className="text-2xl font-bold text-blue-800 block">1</span>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Week Streak</span>
-          </div>
-        </div>
-
-        {/* Skills & Assets (Conditional based on Privacy Toggle) */}
-        {neighbor.show_skills_publicly && neighbor.skills && (
-          <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-[#0f766e]">
-            <h3 className="font-bold text-[#164e63] mb-3 flex items-center gap-2">🛠️ Skills Offered</h3>
-            <div className="flex flex-wrap gap-2">
-              {neighbor.skills.split(',').map((skill: string, index: number) => (
-                <span key={index} className="bg-gray-100 text-gray-700 text-xs font-bold px-3 py-1 rounded-full border border-gray-200 shadow-sm">
-                  {skill.trim()}
-                </span>
-              ))}
+            {/* Rank Badge */}
+            <div className="bg-yellow-50 rounded-lg p-4 text-center border border-yellow-100 flex flex-col justify-center items-center transition hover:shadow-md">
+              <span className="text-3xl mb-1">{badgeIcon}</span>
+              <span className="text-[10px] font-bold text-yellow-800 uppercase tracking-wider">{rank}</span>
             </div>
           </div>
-        )}
-
-        {/* Public Contribution Stream */}
-        <div className="bg-white p-6 rounded-xl shadow-md">
-          <h3 className="font-bold text-[#164e63] mb-4 flex items-center gap-2">🌱 Recent Ideas</h3>
-          {recentIdeas.length === 0 ? (
-            <p className="text-sm text-gray-500 italic">This neighbor hasn't shared any ideas yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {recentIdeas.map((idea) => (
-                <div key={idea.id} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">
-                  <p className="font-semibold text-gray-800 text-sm leading-tight mb-1">{idea.title}</p>
-                  <p className="text-[10px] uppercase font-bold tracking-wider text-gray-400">{new Date(idea.created_at).toLocaleDateString()}</p>
-                </div>
-              ))}
-            </div>
-          )}
+          
+          <p className="text-center text-xs text-gray-500 mt-5 font-medium italic">
+            "We are all travelers shaping stronger communities together."
+          </p>
         </div>
 
       </div>
