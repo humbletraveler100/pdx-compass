@@ -11,6 +11,12 @@ export default function AdminDashboard() {
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const router = useRouter();
 
+  // Megaphone State
+  const [isMegaphoneOpen, setIsMegaphoneOpen] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementContent, setAnnouncementContent] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+
   useEffect(() => {
     const checkAdminAndFetchData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -28,7 +34,7 @@ export default function AdminDashboard() {
       if (userData?.is_admin) {
         setIsAdmin(true);
         
-        // 1. Fetch Flagged Reports (With Safeguards)
+        // 1. Fetch Flagged Reports
         const { data: reportData } = await supabase.from('reports').select('*');
         if (reportData) {
           const enrichedReports = await Promise.all(reportData.map(async (report) => {
@@ -61,7 +67,6 @@ export default function AdminDashboard() {
           .eq('status', 'pending_approval');
         
         if (tasksData) {
-          // Fetch the names of the helpers so the admin knows who they are rewarding
           const enrichedTasks = await Promise.all(tasksData.map(async (task) => {
             let helperName = "Unknown Neighbor";
             if (task.helper_id) {
@@ -83,10 +88,40 @@ export default function AdminDashboard() {
     checkAdminAndFetchData();
   }, [router]);
 
+  // --- MEGAPHONE FUNCTIONS ---
+  const handlePostAnnouncement = async () => {
+    if (!announcementTitle.trim() || !announcementContent.trim()) {
+      alert("Please fill out both the title and content.");
+      return;
+    }
+    
+    setIsPosting(true);
+    const { error } = await supabase.from('spotlight').insert({
+      title: announcementTitle,
+      content: announcementContent
+    });
+
+    if (error) {
+      alert(`Error posting announcement: ${error.message}`);
+    } else {
+      alert("✅ Announcement broadcasted to the Spotlight feed!");
+      setIsMegaphoneOpen(false);
+      setAnnouncementTitle('');
+      setAnnouncementContent('');
+    }
+    setIsPosting(false);
+  };
+
   // --- REPORT FUNCTIONS ---
   const dismissReport = async (reportId: string) => {
-    await supabase.from('reports').delete().eq('id', reportId);
-    setReports(reports.filter(r => r.id !== reportId));
+    // We added error checking here so it doesn't fail silently anymore!
+    const { error } = await supabase.from('reports').delete().eq('id', reportId);
+    
+    if (error) {
+      alert(`Database Security Error: ${error.message}`);
+    } else {
+      setReports(reports.filter(r => r.id !== reportId));
+    }
   };
 
   const deletePost = async (reportId: string, targetId: string, postType: string) => {
@@ -109,17 +144,14 @@ export default function AdminDashboard() {
     if (!confirmApprove) return;
 
     try {
-      // 1. Mark task as verified
       await supabase.from('requests').update({ status: 'verified' }).eq('id', taskId);
 
-      // 2. Give the helper their badge/raffle entry (increment completed_tasks)
       if (helperId) {
         const { data: helperData } = await supabase.from('users').select('completed_tasks').eq('id', helperId).single();
         const currentScore = helperData?.completed_tasks || 0;
         await supabase.from('users').update({ completed_tasks: currentScore + 1 }).eq('id', helperId);
       }
 
-      // 3. Remove from queue
       setPendingTasks(pendingTasks.filter(t => t.id !== taskId));
       alert("✅ Task verified! The helper has been awarded their raffle entry.");
     } catch (error) {
@@ -154,9 +186,37 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-800">
           <h2 className="text-2xl font-extrabold text-gray-800 mb-2">📢 The Megaphone</h2>
           <p className="text-gray-600 text-sm mb-4">Publish official Foundation events and updates directly to the Spotlight feed.</p>
-          <button className="bg-red-800 text-white px-5 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition">
-            + Create Announcement
-          </button>
+          
+          {!isMegaphoneOpen ? (
+            <button onClick={() => setIsMegaphoneOpen(true)} className="bg-red-800 text-white px-5 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition">
+              + Create Announcement
+            </button>
+          ) : (
+            <div className="bg-red-50 p-4 rounded-lg border border-red-200 mt-4">
+              <input 
+                type="text" 
+                placeholder="Announcement Title" 
+                value={announcementTitle}
+                onChange={(e) => setAnnouncementTitle(e.target.value)}
+                className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm font-bold text-gray-800"
+              />
+              <textarea 
+                placeholder="Write your official update here..." 
+                value={announcementContent}
+                onChange={(e) => setAnnouncementContent(e.target.value)}
+                rows={4}
+                className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm text-gray-800"
+              />
+              <div className="flex gap-2">
+                <button onClick={handlePostAnnouncement} disabled={isPosting} className="flex-1 bg-red-800 text-white px-4 py-2 rounded font-bold shadow hover:bg-opacity-90 text-sm transition">
+                  {isPosting ? 'Broadcasting...' : 'Broadcast to Spotlight'}
+                </button>
+                <button onClick={() => setIsMegaphoneOpen(false)} className="px-4 py-2 text-red-800 font-bold text-sm hover:underline">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Verification & Raffles */}
