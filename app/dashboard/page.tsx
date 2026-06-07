@@ -4,152 +4,164 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export default function Dashboard() {
-  const [myRequests, setMyRequests] = useState<any[]>([]);
+export default function DashboardPage() {
+  const [user, setUser] = useState<any>(null);
+  const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  
+  // State for the fulfillment process
+  const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
+  const [helperEmail, setHelperEmail] = useState('');
+
   const router = useRouter();
 
   useEffect(() => {
-    fetchMyData();
-  }, []);
-
-  const fetchMyData = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push('/login');
-      return;
-    }
-
-    // Fetch user profile to get their neighborhood for the Spotlight
-    const { data: profile } = await supabase
-      .from('users')
-      .select('neighborhood')
-      .eq('id', session.user.id)
-      .single();
-      
-    setUserProfile(profile);
-
-    const { data, error } = await supabase
-      .from('requests')
-      .select('*')
-      .eq('requester_id', session.user.id)
-      .order('created_at', { ascending: false });
-
-    if (data) setMyRequests(data);
-    setLoading(false);
-  };
-
-  const handleCompleteAndSpotlight = async (reqId: string) => {
-    // 1. The Prompt: Ask for the story
-    const story = window.prompt("Marking this as completed! Add a short story about this exchange to feature it in the Neighborhood Spotlight (Optional):");
-
-    if (story === null) return; // User clicked Cancel
-
-    try {
-      // 2. Update Requests.status = completed
-      const { error: updateError } = await supabase
-        .from('requests')
-        .update({ status: 'completed' })
-        .eq('id', reqId);
-
-      if (updateError) throw updateError;
-
-      // 3. Create New Spotlight record (if they wrote a story)
-      if (story.trim() !== "") {
-        const { error: spotlightError } = await supabase
-          .from('spotlights')
-          .insert({
-            request_id: reqId,
-            story: story,
-            neighborhood: userProfile?.neighborhood || 'Portland'
-          });
-          
-        if (spotlightError) throw spotlightError;
-        alert("Awesome! Request completed and your story was added to the Spotlight.");
-      } else {
-        alert("Request marked as completed.");
+    const fetchDashboard = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
       }
+      setUser(session.user);
 
-      // Refresh the dashboard list
-      fetchMyData();
+      // Fetch the user's own requests
+      const { data } = await supabase
+        .from('requests')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+      
+      if (data) setRequests(data);
+      setLoading(false);
+    };
 
-    } catch (error: any) {
-      alert(`Error updating request: ${error.message}`);
+    fetchDashboard();
+  }, [router]);
+
+  const submitFulfillment = async (taskId: string) => {
+    let helperId = null;
+
+    if (helperEmail.trim() !== '') {
+      // Look up the helper by email to ensure they get their raffle entry
+      const { data: helperData, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', helperEmail.trim())
+        .maybeSingle();
+      
+      if (error || !helperData) {
+        alert("We couldn't find a user with that email. Please check the spelling, or leave it blank if they aren't on the app.");
+        return;
+      }
+      helperId = helperData.id;
     }
-  };
 
-  const handleRemove = async (reqId: string) => {
-    if (!window.confirm("Are you sure you want to completely remove this request?")) return;
-    
-    const { error } = await supabase
+    // Update the request status and attach the helper
+    const { error: updateError } = await supabase
       .from('requests')
-      .update({ status: 'cancelled' })
-      .eq('id', reqId);
+      .update({ 
+        status: 'pending_approval', 
+        helper_id: helperId 
+      })
+      .eq('id', taskId);
 
-    if (error) {
-      alert(`Error removing request: ${error.message}`);
+    if (!updateError) {
+      alert("✅ Task submitted for verification! Thank you for updating the community.");
+      setRequests(requests.map(r => r.id === taskId ? { ...r, status: 'pending_approval', helper_id: helperId } : r));
+      setCompletingTaskId(null);
+      setHelperEmail('');
     } else {
-      fetchMyData();
+      alert(`Error updating task: ${updateError.message}`);
     }
   };
+
+  const deleteRequest = async (taskId: string) => {
+    const confirmed = window.confirm("Are you sure you want to permanently delete this request?");
+    if (!confirmed) return;
+
+    await supabase.from('requests').delete().eq('id', taskId);
+    setRequests(requests.filter(r => r.id !== taskId));
+  };
+
+  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Dashboard...</div>;
 
   return (
-    <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-widest">PDX Compass</h1>
+    <div className="min-h-screen bg-[#fffbeb] p-4 font-sans pb-12">
+      <nav className="bg-[#b45309] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
+        <h1 className="text-xl font-bold tracking-widest">My Dashboard</h1>
         <a href="/" className="text-sm font-bold text-[#fcd34d] hover:underline">Home</a>
       </nav>
 
-      <div className="max-w-md mx-auto">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-[#164e63]">My Dashboard</h2>
-          <p className="text-gray-600 text-sm">Manage your mutual aid activity.</p>
+      <div className="max-w-2xl mx-auto space-y-6">
+        
+        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#b45309]">
+          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">My Open Requests</h2>
+          <p className="text-gray-600 text-sm mb-4">Manage the help you have asked for. Don't forget to mark tasks as fulfilled so your neighbors can earn their Volunteer Raffle entries!</p>
         </div>
 
-        <h3 className="text-xl font-bold text-[#0f766e] border-b-2 border-[#0f766e] pb-2 mb-4">Help I Need</h3>
-        
-        {loading ? (
-          <p className="text-center text-[#164e63] font-bold">Loading your activity...</p>
-        ) : myRequests.length === 0 ? (
-          <div className="bg-white p-6 rounded-xl shadow border border-gray-200 text-center">
-            <p className="text-gray-500">You haven't posted any requests yet.</p>
+        {requests.length === 0 ? (
+          <div className="bg-orange-50 p-6 rounded-lg border border-orange-100 text-center text-[#92400e] font-bold text-sm shadow-sm">
+            You don't have any active requests right now.
           </div>
         ) : (
           <div className="space-y-4">
-            {myRequests.map((req) => (
-              <div key={req.id} className="bg-white p-5 rounded-xl shadow border-l-4 border-[#0f766e]">
-                <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-[#164e63] text-lg">{req.title}</h4>
-                  <span className={`text-xs px-2 py-1 rounded font-semibold capitalize ${req.status === 'completed' ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700 border border-green-200'}`}>
-                    {req.status}
-                  </span>
-                </div>
-                <p className="text-gray-500 text-sm mb-4 truncate">{req.description}</p>
+            {requests.map((task) => (
+              <div key={task.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
                 
-                {req.status === 'open' && (
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleCompleteAndSpotlight(req.id)}
-                      className="flex-1 bg-[#10b981] text-white font-bold py-2 rounded shadow hover:bg-[#059669]"
-                    >
-                      Mark Fulfilled
+                {/* Task Content */}
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-bold text-lg text-gray-800">{task.title}</h3>
+                    {/* Status Badges */}
+                    {task.status === 'open' && <span className="bg-green-100 text-green-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Open</span>}
+                    {task.status === 'pending_approval' && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Pending Verification</span>}
+                    {task.status === 'verified' && <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">Completed</span>}
+                  </div>
+                  <p className="text-sm text-gray-600">{task.description}</p>
+                </div>
+
+                {/* Open Status Actions */}
+                {task.status === 'open' && completingTaskId !== task.id && (
+                  <div className="flex gap-2 pt-2 border-t border-gray-100">
+                    <button onClick={() => setCompletingTaskId(task.id)} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm transition">
+                      Mark as Fulfilled
                     </button>
-                    <button className="flex-1 bg-gray-100 text-gray-700 font-bold py-2 rounded shadow border border-gray-200">
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => handleRemove(req.id)}
-                      className="flex-1 bg-red-50 text-red-600 font-bold py-2 rounded shadow border border-red-200 hover:bg-red-100"
-                    >
-                      Remove
+                    <button onClick={() => deleteRequest(task.id)} className="px-4 py-2 text-red-600 font-bold text-sm hover:underline">
+                      Delete
                     </button>
                   </div>
                 )}
+
+                {/* Fulfillment Form Modal */}
+                {completingTaskId === task.id && (
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mt-2">
+                    <p className="text-sm font-bold text-[#164e63] mb-2">Who helped you with this?</p>
+                    <p className="text-xs text-gray-500 mb-3">Enter their account email so they can receive a Reward Drawing entry. Leave blank if they are not on the app.</p>
+                    
+                    <input 
+                      type="email" 
+                      placeholder="neighbor@email.com" 
+                      value={helperEmail}
+                      onChange={(e) => setHelperEmail(e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none mb-3 text-sm"
+                    />
+                    
+                    <div className="flex gap-2">
+                      <button onClick={() => submitFulfillment(task.id)} className="flex-1 bg-[#164e63] text-white px-4 py-2 rounded font-bold shadow hover:bg-opacity-90 text-sm transition">
+                        Submit for Verification
+                      </button>
+                      <button onClick={() => setCompletingTaskId(null)} className="px-4 py-2 text-gray-500 font-bold text-sm hover:underline">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             ))}
           </div>
         )}
+
       </div>
     </div>
   );
