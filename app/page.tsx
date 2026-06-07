@@ -93,7 +93,10 @@ export default function Home() {
 
         {/* LEGAL & SAFETY FOOTER */}
         <div className="mt-10 pt-6 border-t border-[#0f766e] border-opacity-20 text-center pb-8 flex flex-col gap-2">
-          <a href="/safety" className="text-[#0f766e] text-sm font-bold hover:underline">
+          <a href="/rewards" className="text-[#164e63] text-sm font-extrabold hover:underline flex items-center justify-center gap-1">
+            🎁 Monthly Reward Drawing Rules
+          </a>
+          <a href="/safety" className="text-[#0f766e] text-sm font-bold hover:underline mt-2">
             Community Safety Standards
           </a>
           <a href="/legal" className="text-[#0f766e] text-sm font-bold hover:underline">
