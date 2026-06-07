@@ -22,7 +22,7 @@ export default function ProfilePage() {
   // Private Details State
   const [fullLegalName, setFullLegalName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [fullAddress, setFullAddress] = useState('');
+  const [fullAddress, setFullAddress] = useState(''); 
 
   // Toggles (Steering Wheel)
   const [smsOptIn, setSmsOptIn] = useState(false);
@@ -95,10 +95,10 @@ export default function ProfilePage() {
     setSaving(true);
     const { error } = await supabase
       .from('users')
-      .update({ 
-        name, neighborhood, bio, languages, skills, 
+      .update({
+        name, neighborhood, bio, languages, skills,
         full_legal_name: fullLegalName, phone_number: phoneNumber, full_address: fullAddress,
-        sms_opt_in: smsOptIn, newsletter_opt_in: newsletterOptIn, snooze_notifications: snoozeNotifications, 
+        sms_opt_in: smsOptIn, newsletter_opt_in: newsletterOptIn, snooze_notifications: snoozeNotifications,
         show_skills_publicly: showSkillsPublicly, is_profile_public: isProfilePublic
       })
       .eq('id', user.id);
@@ -129,7 +129,7 @@ export default function ProfilePage() {
         <h1 className="text-xl font-bold tracking-widest">Settings</h1>
         <a href="/" className="text-sm font-bold text-[#fcd34d] hover:underline">Home</a>
       </nav>
-
+      
       <div className="max-w-md mx-auto space-y-6">
         
         {/* Top Header & Avatar */}
@@ -160,7 +160,7 @@ export default function ProfilePage() {
               <span className="ml-2 text-xs font-bold text-gray-600">{isProfilePublic ? 'Visible' : 'Hidden'}</span>
             </label>
           </div>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Display Name</label>
@@ -214,7 +214,6 @@ export default function ProfilePage() {
               <label className="block text-sm font-bold text-gray-700 mb-1">Phone Number</label>
               <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="w-full p-2 border border-gray-300 rounded outline-none" />
             </div>
-            
             <div className="pt-2 flex flex-col gap-3">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" checked={smsOptIn} onChange={(e) => setSmsOptIn(e.target.checked)} className="w-5 h-5 text-[#0f766e] rounded focus:ring-[#0f766e]" />
@@ -247,17 +246,6 @@ export default function ProfilePage() {
           <button onClick={handleDownloadData} className="w-full mt-4 bg-gray-100 text-gray-700 border border-gray-300 font-bold py-2 rounded-lg text-sm hover:bg-gray-200 transition">
             📥 Download My Data
           </button>
-        </div>
-
-        {/* 5. Community Journey Tracker */}
-        <div className="bg-[#fef3c7] p-6 rounded-xl border border-[#fcd34d] shadow-md">
-          <h3 className="font-bold text-[#b45309] mb-4 flex items-center gap-2 text-xl">🌟 My Journey</h3>
-          <ul className="text-sm text-[#78350f] space-y-3">
-            <li className="flex items-center gap-3">
-              <span className="text-green-600 font-bold text-xl">✓</span> 
-              <span className="text-base"><strong>{profile?.completed_tasks || 0}</strong> Tasks Completed</span>
-            </li>
-          </ul>
         </div>
 
       </div>
