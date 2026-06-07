@@ -20,14 +20,14 @@ export default function AskForHelp() {
   useEffect(() => {
     const verifyUserAndProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session?.user) {
         router.push('/login');
         return;
       }
       
       setUser(session.user);
-
+      
       const { data: profile } = await supabase
         .from('users')
         .select('name, neighborhood')
@@ -48,12 +48,13 @@ export default function AskForHelp() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!user) return;
+    
     setMessage('Submitting your request...');
-
+    
     const { error } = await supabase
       .from('requests')
       .insert({
-        requester_id: user.id,
+        user_id: user.id,          // FIXED: Changed from requester_id
         title: title,
         description: description,
         category: category || 'General Help',
@@ -61,7 +62,7 @@ export default function AskForHelp() {
         urgency: urgency,
         time_window: timeWindow,
         location_label: locationLabel,
-        status: 'pending',
+        status: 'open',            // FIXED: Changed from pending
       });
 
     if (error) {
@@ -87,7 +88,7 @@ export default function AskForHelp() {
         <h2 className="text-2xl font-bold text-[#0f766e] mb-2">Ask for Help</h2>
         <p className="text-gray-600 mb-6 text-sm">Post a request to the community board.</p>
 
-        {/* NEW: Trust & Safety Disclaimer */}
+        {/* Trust & Safety Disclaimer */}
         <div className="bg-[#fef3c7] border-l-4 border-[#b45309] p-4 mb-6 rounded-r-lg shadow-sm text-sm text-[#78350f]">
           <strong>Safety Notice:</strong> The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between individuals. Participants should exercise reasonable judgment and prioritize personal safety.
         </div>
@@ -138,7 +139,7 @@ export default function AskForHelp() {
               </select>
             </div>
           </div>
-
+          
           <div>
             <label className="block text-sm font-bold text-[#164e63] mb-1">General Location</label>
             <input type="text" placeholder="e.g., 97212 or Cathedral Park area" value={locationLabel} onChange={(e) => setLocationLabel(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#0f766e]" />
@@ -147,7 +148,7 @@ export default function AskForHelp() {
           <button type="submit" className="w-full bg-[#164e63] text-white font-bold py-3 rounded-lg hover:bg-opacity-90 shadow-md mt-4">
             Post Request
           </button>
-
+          
           {message && <p className="mt-4 text-center text-sm font-semibold text-[#0f766e]">{message}</p>}
         </form>
       </div>
