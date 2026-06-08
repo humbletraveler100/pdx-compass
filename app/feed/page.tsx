@@ -129,12 +129,21 @@ export default function FeedPage() {
                 
                 {/* Action Row */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-gray-100 pt-3">
-                  <button 
-                    onClick={() => handleOfferHelp(req.user_id, req.title)} 
-                    className="w-full sm:w-auto bg-[#fcd34d] text-[#78350f] px-5 py-2 rounded-lg font-bold shadow-sm hover:bg-opacity-90 text-sm transition flex items-center justify-center gap-2"
-                  >
-                    <span>🤝</span> Offer to Help
-                  </button>
+                  
+                  {/* Dynamic Button Rendering */}
+                  {currentUser?.id !== req.user_id ? (
+                    <button 
+                      onClick={() => handleOfferHelp(req.user_id, req.title)} 
+                      className="w-full sm:w-auto bg-[#fcd34d] text-[#78350f] px-5 py-2 rounded-lg font-bold shadow-sm hover:bg-opacity-90 text-sm transition flex items-center justify-center gap-2"
+                    >
+                      <span>🤝</span> Offer to Help
+                    </button>
+                  ) : (
+                    <div className="w-full sm:w-auto bg-gray-100 text-gray-500 px-5 py-2 rounded-lg font-bold text-sm text-center border border-gray-200">
+                      Your Request
+                    </div>
+                  )}
+
                   <a href={`/neighbor/${req.user_id}`} className="text-xs text-[#0f766e] font-bold hover:underline self-end sm:self-auto">
                     View Neighbor Profile
                   </a>
