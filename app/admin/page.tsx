@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<any[]>([]);
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [volunteers, setVolunteers] = useState<any[]>([]);
   const router = useRouter();
 
   // Megaphone State
@@ -35,7 +36,7 @@ export default function AdminDashboard() {
       if (userData?.is_admin) {
         setIsAdmin(true);
         
-        // Fetch Flagged Reports
+        // 1. Fetch Flagged Reports
         const { data: reportData } = await supabase.from('reports').select('*');
         if (reportData) {
           const enrichedReports = await Promise.all(reportData.map(async (report) => {
@@ -61,7 +62,7 @@ export default function AdminDashboard() {
           setReports(enrichedReports);
         }
 
-        // Fetch Tasks Pending Verification
+        // 2. Fetch Tasks Pending Verification
         const { data: tasksData } = await supabase
           .from('requests')
           .select('*')
@@ -78,6 +79,15 @@ export default function AdminDashboard() {
           }));
           setPendingTasks(enrichedTasks);
         }
+
+        // 3. Fetch Volunteers for the Raffle (Anyone with > 0 tasks)
+        const { data: volData } = await supabase
+          .from('users')
+          .select('id, name, email, completed_tasks')
+          .gt('completed_tasks', 0)
+          .order('completed_tasks', { ascending: false });
+        
+        if (volData) setVolunteers(volData);
 
       } else {
         alert("Access Denied: You do not have administrator privileges.");
@@ -99,7 +109,6 @@ export default function AdminDashboard() {
     setIsPosting(true);
     let imageUrl = null;
 
-    // Handle Image Upload First
     if (announcementImage) {
       const fileExt = announcementImage.name.split('.').pop();
       const fileName = `spotlight-${Date.now()}.${fileExt}`;
@@ -116,7 +125,6 @@ export default function AdminDashboard() {
       imageUrl = data.publicUrl;
     }
 
-    // Save the Announcement
     const { error } = await supabase.from('spotlight').insert({
       title: announcementTitle,
       content: announcementContent,
@@ -171,6 +179,13 @@ export default function AdminDashboard() {
         const { data: helperData } = await supabase.from('users').select('completed_tasks').eq('id', helperId).single();
         const currentScore = helperData?.completed_tasks || 0;
         await supabase.from('users').update({ completed_tasks: currentScore + 1 }).eq('id', helperId);
+        
+        // Refresh the local volunteer list
+        const updatedVolunteers = volunteers.map(vol => 
+          vol.id === helperId ? { ...vol, completed_tasks: vol.completed_tasks + 1 } : vol
+        );
+        // If they weren't in the list before, we should technically re-fetch, but for now this handles updates
+        setVolunteers(updatedVolunteers);
       }
 
       setPendingTasks(pendingTasks.filter(t => t.id !== taskId));
@@ -251,10 +266,47 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        {/* RAFFLE MANAGER & LEADERBOARD */}
+        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500">
+          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">🎟️ Raffle Manager</h2>
+          <p className="text-gray-600 text-sm mb-4">A complete list of all volunteers and their current number of reward entries.</p>
+          
+          {volunteers.length === 0 ? (
+            <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-100 text-center text-yellow-800 font-bold text-sm">
+              No verified tasks yet. The entries will appear here!
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="w-full text-left text-sm text-gray-700">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">Neighbor</th>
+                    <th className="px-4 py-3 font-bold">Email (Contact)</th>
+                    <th className="px-4 py-3 font-bold text-center">Raffle Entries</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {volunteers.map((vol) => (
+                    <tr key={vol.id} className="bg-white hover:bg-yellow-50 transition">
+                      <td className="px-4 py-3 font-bold text-[#164e63]">{vol.name || 'Anonymous'}</td>
+                      <td className="px-4 py-3 text-gray-500">{vol.email}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="bg-yellow-100 text-yellow-800 py-1 px-3 rounded-full font-extrabold shadow-sm">
+                          {vol.completed_tasks}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
         {/* Verification & Raffles */}
         <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-600">
-          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">✅ Task Verification & Raffles</h2>
-          <p className="text-gray-600 text-sm mb-4">Review completed community tasks to award badges and Volunteer Raffle entries.</p>
+          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">✅ Task Verification Queue</h2>
+          <p className="text-gray-600 text-sm mb-4">Review completed community tasks to award badges and entries.</p>
           
           {pendingTasks.length === 0 ? (
             <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center text-blue-800 font-bold text-sm">
