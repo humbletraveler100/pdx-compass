@@ -19,6 +19,9 @@ export default function AdminDashboard() {
   const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
+  // Raffle State
+  const [raffleWinner, setRaffleWinner] = useState<any>(null);
+
   useEffect(() => {
     const checkAdminAndFetchData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -80,7 +83,7 @@ export default function AdminDashboard() {
           setPendingTasks(enrichedTasks);
         }
 
-        // 3. Fetch Volunteers for the Raffle (Anyone with > 0 tasks)
+        // 3. Fetch Volunteers for the Raffle
         const { data: volData } = await supabase
           .from('users')
           .select('id, name, email, completed_tasks')
@@ -143,6 +146,26 @@ export default function AdminDashboard() {
     setIsPosting(false);
   };
 
+  // --- RAFFLE DRAW ALGORITHM ---
+  const drawWinner = () => {
+    if (volunteers.length === 0) {
+      alert("There are no volunteer entries yet!");
+      return;
+    }
+
+    // Create a weighted pool: if someone has 3 entries, add their name 3 times
+    const drawingPool: any[] = [];
+    volunteers.forEach((vol) => {
+      for (let i = 0; i < vol.completed_tasks; i++) {
+        drawingPool.push(vol);
+      }
+    });
+
+    // Pick a random ticket from the pool
+    const winningIndex = Math.floor(Math.random() * drawingPool.length);
+    setRaffleWinner(drawingPool[winningIndex]);
+  };
+
   // --- REPORT FUNCTIONS ---
   const dismissReport = async (reportId: string) => {
     const { error } = await supabase.from('reports').delete().eq('id', reportId);
@@ -180,11 +203,10 @@ export default function AdminDashboard() {
         const currentScore = helperData?.completed_tasks || 0;
         await supabase.from('users').update({ completed_tasks: currentScore + 1 }).eq('id', helperId);
         
-        // Refresh the local volunteer list
         const updatedVolunteers = volunteers.map(vol => 
           vol.id === helperId ? { ...vol, completed_tasks: vol.completed_tasks + 1 } : vol
         );
-        // If they weren't in the list before, we should technically re-fetch, but for now this handles updates
+        // If they weren't in the list before, they won't automatically show until refresh, but this updates existing ones visually.
         setVolunteers(updatedVolunteers);
       }
 
@@ -268,8 +290,27 @@ export default function AdminDashboard() {
 
         {/* RAFFLE MANAGER & LEADERBOARD */}
         <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-yellow-500">
-          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">🎟️ Raffle Manager</h2>
-          <p className="text-gray-600 text-sm mb-4">A complete list of all volunteers and their current number of reward entries.</p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-2xl font-extrabold text-gray-800 mb-1">🎟️ Raffle Manager</h2>
+              <p className="text-gray-600 text-sm">A complete list of all volunteers and their current number of reward entries.</p>
+            </div>
+            <button onClick={drawWinner} className="bg-yellow-500 text-yellow-900 px-4 py-2 rounded-lg font-bold shadow hover:bg-yellow-400 transition text-sm whitespace-nowrap ml-2">
+              Draw Random Winner
+            </button>
+          </div>
+
+          {raffleWinner && (
+            <div className="bg-gradient-to-r from-yellow-100 to-yellow-50 p-6 rounded-xl border-2 border-yellow-400 mb-6 text-center shadow-inner">
+              <span className="text-4xl block mb-2">🎉</span>
+              <h3 className="font-extrabold text-yellow-800 text-xl tracking-widest uppercase mb-1">Winner Selected!</h3>
+              <p className="text-yellow-900 font-bold text-2xl my-2">{raffleWinner.name || 'Anonymous'}</p>
+              <p className="text-yellow-700 text-base mb-3 font-medium">{raffleWinner.email}</p>
+              <button onClick={() => setRaffleWinner(null)} className="text-sm font-bold text-yellow-600 hover:text-yellow-800 underline transition">
+                Clear Winner
+              </button>
+            </div>
+          )}
           
           {volunteers.length === 0 ? (
             <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-100 text-center text-yellow-800 font-bold text-sm">
