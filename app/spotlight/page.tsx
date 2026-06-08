@@ -49,7 +49,7 @@ export default function SpotlightPage() {
         ) : (
           <div className="space-y-4">
             {announcements.map((post) => (
-              <div key={post.id} className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition flex flex-col gap-3">
+              <div key={post.id} className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm hover:shadow-md transition flex flex-col gap-3 overflow-hidden">
                 
                 {/* Post Header */}
                 <div className="flex justify-between items-start border-b border-gray-100 pb-3">
@@ -59,11 +59,18 @@ export default function SpotlightPage() {
                   </span>
                 </div>
                 
+                {/* Embedded Image (If it exists) */}
+                {post.image_url && (
+                  <div className="w-full h-48 sm:h-64 mt-2 mb-2 rounded-lg overflow-hidden border border-gray-100">
+                    <img src={post.image_url} alt={post.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+
                 {/* Post Content */}
                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{post.content}</p>
                 
                 {/* Post Footer */}
-                <div className="pt-3 flex justify-between items-center text-[10px] text-gray-400 font-bold mt-2 uppercase tracking-wider">
+                <div className="pt-3 flex justify-between items-center text-[10px] text-gray-400 font-bold mt-2 uppercase tracking-wider border-t border-gray-50">
                   <span>{post.author_name}</span>
                   <span>{new Date(post.created_at).toLocaleDateString()}</span>
                 </div>

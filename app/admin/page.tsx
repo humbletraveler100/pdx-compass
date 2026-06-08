@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [isMegaphoneOpen, setIsMegaphoneOpen] = useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementContent, setAnnouncementContent] = useState('');
+  const [announcementImage, setAnnouncementImage] = useState<File | null>(null);
   const [isPosting, setIsPosting] = useState(false);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function AdminDashboard() {
       if (userData?.is_admin) {
         setIsAdmin(true);
         
-        // 1. Fetch Flagged Reports
+        // Fetch Flagged Reports
         const { data: reportData } = await supabase.from('reports').select('*');
         if (reportData) {
           const enrichedReports = await Promise.all(reportData.map(async (report) => {
@@ -60,7 +61,7 @@ export default function AdminDashboard() {
           setReports(enrichedReports);
         }
 
-        // 2. Fetch Tasks Pending Verification
+        // Fetch Tasks Pending Verification
         const { data: tasksData } = await supabase
           .from('requests')
           .select('*')
@@ -96,9 +97,30 @@ export default function AdminDashboard() {
     }
     
     setIsPosting(true);
+    let imageUrl = null;
+
+    // Handle Image Upload First
+    if (announcementImage) {
+      const fileExt = announcementImage.name.split('.').pop();
+      const fileName = `spotlight-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage.from('compass-images').upload(fileName, announcementImage);
+      
+      if (uploadError) {
+        alert(`Error uploading image: ${uploadError.message}`);
+        setIsPosting(false);
+        return;
+      }
+
+      const { data } = supabase.storage.from('compass-images').getPublicUrl(fileName);
+      imageUrl = data.publicUrl;
+    }
+
+    // Save the Announcement
     const { error } = await supabase.from('spotlight').insert({
       title: announcementTitle,
-      content: announcementContent
+      content: announcementContent,
+      image_url: imageUrl
     });
 
     if (error) {
@@ -108,15 +130,14 @@ export default function AdminDashboard() {
       setIsMegaphoneOpen(false);
       setAnnouncementTitle('');
       setAnnouncementContent('');
+      setAnnouncementImage(null);
     }
     setIsPosting(false);
   };
 
   // --- REPORT FUNCTIONS ---
   const dismissReport = async (reportId: string) => {
-    // We added error checking here so it doesn't fail silently anymore!
     const { error } = await supabase.from('reports').delete().eq('id', reportId);
-    
     if (error) {
       alert(`Database Security Error: ${error.message}`);
     } else {
@@ -207,11 +228,22 @@ export default function AdminDashboard() {
                 rows={4}
                 className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm text-gray-800"
               />
+              
+              <div className="mb-4 p-3 bg-white border border-red-200 rounded-lg flex flex-col gap-2">
+                <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Attach Image (Optional)</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={(e) => setAnnouncementImage(e.target.files ? e.target.files[0] : null)}
+                  className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                />
+              </div>
+
               <div className="flex gap-2">
                 <button onClick={handlePostAnnouncement} disabled={isPosting} className="flex-1 bg-red-800 text-white px-4 py-2 rounded font-bold shadow hover:bg-opacity-90 text-sm transition">
-                  {isPosting ? 'Broadcasting...' : 'Broadcast to Spotlight'}
+                  {isPosting ? 'Uploading & Broadcasting...' : 'Broadcast to Spotlight'}
                 </button>
-                <button onClick={() => setIsMegaphoneOpen(false)} className="px-4 py-2 text-red-800 font-bold text-sm hover:underline">
+                <button onClick={() => { setIsMegaphoneOpen(false); setAnnouncementImage(null); }} className="px-4 py-2 text-red-800 font-bold text-sm hover:underline">
                   Cancel
                 </button>
               </div>
