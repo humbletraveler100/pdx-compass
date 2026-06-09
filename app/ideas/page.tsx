@@ -4,178 +4,307 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export default function IdeasBoard() {
-  const [ideas, setIdeas] = useState<any[]>([]);
+export default function IdeasPage() {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  
+  // Feed Data
+  const [ideas, setIdeas] = useState<any[]>([]);
+  const [comments, setComments] = useState<any>({});
+  const [votes, setVotes] = useState<any>({});
+  
+  // UI States
+  const [expandedIdeaId, setExpandedIdeaId] = useState<string | null>(null);
+  const [showNewPostForm, setShowNewPostForm] = useState(false);
+  
+  // New Post State
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [isPoll, setIsPoll] = useState(false);
+  const [pollOptions, setPollOptions] = useState(['', '']);
+  
+  // Comment State
+  const [newComment, setNewComment] = useState('');
+
   const router = useRouter();
 
-  // Form State
-  const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [imageFile, setImageFile] = useState<any>(null);
-  const [submitting, setSubmitting] = useState(false);
-
   useEffect(() => {
-    fetchIdeasAndUser();
+    fetchData();
   }, []);
 
-  const fetchIdeasAndUser = async () => {
+  const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user || null);
+    if (session) {
+      setCurrentUser(session.user);
+      const { data: userData } = await supabase.from('users').select('is_admin').eq('id', session.user.id).single();
+      if (userData?.is_admin) setIsAdmin(true);
+    }
 
-    const { data, error } = await supabase
+    // Fetch Ideas
+    const { data: ideasData } = await supabase
       .from('community_ideas')
-      .select(`
-        *,
-        author:users!author_id(name, avatar_url)
-      `)
+      .select('*, users(name)')
       .order('created_at', { ascending: false });
-
-    if (data) setIdeas(data);
+    
+    if (ideasData) {
+      setIdeas(ideasData);
+      
+      // Fetch Votes for Polls
+      const { data: votesData } = await supabase.from('poll_votes').select('*');
+      const votesMap: any = {};
+      if (votesData) {
+        votesData.forEach(vote => {
+          if (!votesMap[vote.idea_id]) votesMap[vote.idea_id] = [];
+          votesMap[vote.idea_id].push(vote);
+        });
+      }
+      setVotes(votesMap);
+    }
     setLoading(false);
   };
 
-  const handlePostIdea = async () => {
-    if (!user) {
-      alert("Please sign in to share an idea.");
-      router.push('/login');
+  const loadComments = async (ideaId: string) => {
+    if (expandedIdeaId === ideaId) {
+      setExpandedIdeaId(null);
       return;
     }
-    if (!title || !description) {
-      alert("Please provide a title and description.");
-      return;
+    
+    const { data } = await supabase
+      .from('idea_comments')
+      .select('*, users(name)')
+      .eq('idea_id', ideaId)
+      .order('created_at', { ascending: true });
+      
+    if (data) {
+      setComments({ ...comments, [ideaId]: data });
     }
+    setExpandedIdeaId(ideaId);
+  };
 
-    setSubmitting(true);
-    let finalImageUrl = null;
+  const submitPost = async () => {
+    if (!currentUser) return router.push('/login');
+    if (!newTitle.trim() || !newDescription.trim()) return alert("Title and description are required.");
 
-    try {
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `idea-${Date.now()}-${Math.random()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage.from('compass-images').upload(fileName, imageFile);
-        if (uploadError) throw uploadError;
+    const cleanedOptions = isPoll ? pollOptions.filter(opt => opt.trim() !== '') : [];
+    if (isPoll && cleanedOptions.length < 2) return alert("Polls require at least two valid options.");
 
-        const { data: { publicUrl } } = supabase.storage.from('compass-images').getPublicUrl(fileName);
-        finalImageUrl = publicUrl;
-      }
+    const { error } = await supabase.from('community_ideas').insert({
+      user_id: currentUser.id,
+      title: newTitle,
+      description: newDescription,
+      is_poll: isPoll,
+      poll_options: isPoll ? cleanedOptions : []
+    });
 
-      const { error: insertError } = await supabase
-        .from('community_ideas')
-        .insert({
-          author_id: user.id,
-          title: title,
-          description: description,
-          image_url: finalImageUrl
-        });
-
-      if (insertError) throw insertError;
-
-      alert("Idea shared successfully!");
-      setShowForm(false);
-      setTitle('');
-      setDescription('');
-      setImageFile(null);
-      fetchIdeasAndUser(); 
-
-    } catch (error: any) {
-      alert(`Error posting idea: ${error.message}`);
-    } finally {
-      setSubmitting(false);
+    if (error) {
+      alert(`Error: ${error.message}`);
+    } else {
+      setShowNewPostForm(false);
+      setNewTitle('');
+      setNewDescription('');
+      setIsPoll(false);
+      setPollOptions(['', '']);
+      fetchData(); // Refresh feed
     }
   };
 
+  const submitComment = async (ideaId: string) => {
+    if (!currentUser) return router.push('/login');
+    if (!newComment.trim()) return;
+
+    const { error } = await supabase.from('idea_comments').insert({
+      idea_id: ideaId,
+      user_id: currentUser.id,
+      content: newComment
+    });
+
+    if (!error) {
+      setNewComment('');
+      loadComments(ideaId); // Refresh comments for this post
+    }
+  };
+
+  const submitVote = async (ideaId: string, optionIndex: number) => {
+    if (!currentUser) return router.push('/login');
+
+    const { error } = await supabase.from('poll_votes').insert({
+      idea_id: ideaId,
+      user_id: currentUser.id,
+      option_index: optionIndex
+    });
+
+    if (error) {
+      alert("You have already voted on this poll!");
+    } else {
+      fetchData(); // Refresh to show updated votes
+    }
+  };
+
+  // Helper to calculate poll percentages
+  const getPollStats = (ideaId: string, optionIndex: number, optionsLength: number) => {
+    const postVotes = votes[ideaId] || [];
+    const totalVotes = postVotes.length;
+    const optionVotes = postVotes.filter((v: any) => v.option_index === optionIndex).length;
+    const percentage = totalVotes === 0 ? 0 : Math.round((optionVotes / totalVotes) * 100);
+    const hasVoted = postVotes.some((v: any) => v.user_id === currentUser?.id);
+    return { percentage, optionVotes, totalVotes, hasVoted };
+  };
+
+  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Community Town Square...</div>;
+
   return (
-    <div className="min-h-screen bg-[#e0f2fe] p-4 font-sans pb-12">
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-widest">Ideas Board</h1>
-        <div className="space-x-4">
-          <a href="/feed" className="text-sm font-bold text-gray-300 hover:text-white">Feed</a>
-          <a href="/profile" className="text-sm font-bold text-[#fcd34d] hover:underline">Profile</a>
-        </div>
+    <div className="min-h-screen bg-[#fefce8] p-4 font-sans pb-12">
+      <nav className="bg-[#ca8a04] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center sticky top-0 z-10">
+        <button onClick={() => router.back()} className="text-sm font-bold text-yellow-100 hover:underline">← Back</button>
+        <h1 className="text-xl font-bold tracking-widest text-center flex-1">Ideas</h1>
+        <a href="/" className="text-sm font-bold text-white hover:underline">Home</a>
       </nav>
 
-      <div className="max-w-md mx-auto">
-        <div className="flex justify-between items-end mb-6">
+      <div className="max-w-2xl mx-auto space-y-6">
+        
+        {/* Header Hero */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#ca8a04] flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-bold text-[#164e63]">Community Ideas</h2>
-            <p className="text-gray-600 text-sm">Propose projects and share inspiration.</p>
+            <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Town Square</h2>
+            <p className="text-gray-600 text-sm">Brainstorm, discuss, and vote on community initiatives.</p>
           </div>
-          <button 
-            onClick={() => setShowForm(!showForm)}
-            className="bg-[#164e63] text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-opacity-90"
-          >
-            {showForm ? 'Cancel' : '+ New Idea'}
+          <button onClick={() => setShowNewPostForm(!showNewPostForm)} className="bg-[#ca8a04] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm">
+            {showNewPostForm ? 'Cancel' : '+ New Post'}
           </button>
         </div>
 
-        {/* Share Idea Form */}
-        {showForm && (
-          <div className="bg-white p-5 rounded-xl shadow-md border-t-4 border-[#fcd34d] mb-6 space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Title</label>
-              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="What's your idea?" className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Description</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Explain how it helps the neighborhood..." rows={4} className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1">Attach a Photo (Optional)</label>
-              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-[#0f766e] hover:file:bg-blue-100" />
-            </div>
-            <button onClick={handlePostIdea} disabled={submitting} className="w-full bg-[#fcd34d] text-[#164e63] font-bold py-2 rounded-lg text-sm hover:bg-opacity-90 shadow">
-              {submitting ? 'Posting...' : 'Share Idea'}
+        {/* New Post Form */}
+        {showNewPostForm && (
+          <div className="bg-white p-6 rounded-xl shadow-md border border-yellow-200">
+            <h3 className="font-bold text-[#ca8a04] mb-4 text-lg">Share an Idea or Topic</h3>
+            
+            <input type="text" placeholder="Post Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
+            <textarea placeholder="What's on your mind? Share details here..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
+
+            {/* Admin Only: Create Poll Toggle */}
+            {isAdmin && (
+              <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+                <label className="flex items-center cursor-pointer mb-3">
+                  <input type="checkbox" checked={isPoll} onChange={(e) => setIsPoll(e.target.checked)} className="mr-2 w-4 h-4 text-[#ca8a04]" />
+                  <span className="font-bold text-sm text-[#854d0e]">Make this a Community Poll</span>
+                </label>
+                
+                {isPoll && (
+                  <div className="space-y-2">
+                    {pollOptions.map((opt, i) => (
+                      <input key={i} type="text" placeholder={`Option ${i + 1}`} value={opt} onChange={(e) => {
+                        const newOpts = [...pollOptions];
+                        newOpts[i] = e.target.value;
+                        setPollOptions(newOpts);
+                      }} className="w-full p-2 border border-yellow-200 rounded text-sm focus:outline-none focus:border-[#ca8a04]" />
+                    ))}
+                    <button onClick={() => setPollOptions([...pollOptions, ''])} className="text-xs font-bold text-[#ca8a04] hover:underline">+ Add Option</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button onClick={submitPost} className="w-full bg-[#ca8a04] text-white font-bold py-3 rounded-lg hover:bg-opacity-90 shadow">
+              Publish Post
             </button>
           </div>
         )}
 
-        {/* Ideas Feed */}
-        {loading ? (
-          <p className="text-center text-[#164e63] font-bold mt-10">Loading ideas...</p>
-        ) : ideas.length === 0 ? (
-          <div className="bg-white p-8 rounded-xl shadow text-center border-t-4 border-[#0f766e]">
-            <p className="text-[#164e63] font-bold mb-2">No ideas yet!</p>
-            <p className="text-sm text-gray-500">Be the first to share a vision for the community.</p>
+        {/* Feed */}
+        {ideas.length === 0 ? (
+          <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-100 text-center text-yellow-800 font-bold text-sm shadow-sm">
+            The town square is quiet. Be the first to start a discussion!
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {ideas.map((idea) => (
-              <div key={idea.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
-                {idea.image_url && (
-                  <div className="w-full h-48 bg-gray-100">
-                    <img src={idea.image_url} alt={idea.title} className="w-full h-full object-cover" />
+              <div key={idea.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm">
+                
+                {/* Post Header */}
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-xl text-gray-800">{idea.title}</h3>
+                  {idea.is_poll && <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">📊 Poll</span>}
+                </div>
+                
+                <p className="text-xs text-gray-500 font-bold mb-3 uppercase tracking-wider">
+                  By {idea.users?.name || 'Neighbor'} • {new Date(idea.created_at).toLocaleDateString()}
+                </p>
+                <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">{idea.description}</p>
+                
+                {/* Poll Rendering */}
+                {idea.is_poll && (
+                  <div className="mb-4 space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                    {idea.poll_options.map((opt: string, index: number) => {
+                      const stats = getPollStats(idea.id, index, idea.poll_options.length);
+                      return (
+                        <div key={index} className="relative">
+                          {/* Voting Button / Result Bar */}
+                          <button 
+                            onClick={() => !stats.hasVoted && submitVote(idea.id, index)}
+                            disabled={stats.hasVoted}
+                            className={`w-full text-left p-3 rounded-lg border flex justify-between items-center relative overflow-hidden transition ${stats.hasVoted ? 'border-gray-300 bg-white cursor-default' : 'border-[#ca8a04] bg-white hover:bg-yellow-50 shadow-sm'}`}
+                          >
+                            {/* Progress Fill */}
+                            {stats.hasVoted && (
+                              <div className="absolute left-0 top-0 bottom-0 bg-yellow-100" style={{ width: `${stats.percentage}%` }}></div>
+                            )}
+                            <span className="relative z-10 font-bold text-sm text-gray-800">{opt}</span>
+                            {stats.hasVoted && <span className="relative z-10 text-xs font-bold text-gray-500">{stats.percentage}%</span>}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {getPollStats(idea.id, 0, 0).hasVoted && (
+                      <p className="text-center text-xs text-gray-400 mt-2 font-bold">Total Votes: {votes[idea.id]?.length || 0}</p>
+                    )}
                   </div>
                 )}
-                
-                <div className="p-5">
-                  <h3 className="font-bold text-xl text-[#164e63] leading-tight mb-2">{idea.title}</h3>
-                  <p className="text-gray-700 text-sm mb-4 whitespace-pre-wrap">{idea.description}</p>
-                  
-                  <div className="flex items-center justify-between border-t border-gray-100 pt-4">
-                    {/* UPGRADED: Clickable Neighbor Link */}
-                    <a href={`/neighbor/${idea.author_id}`} className="flex items-center gap-2 hover:opacity-80 transition cursor-pointer">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300 flex items-center justify-center">
-                        {idea.author?.avatar_url ? (
-                          <img src={idea.author.avatar_url} alt="Author" className="w-full h-full object-cover" />
-                        ) : (
-                          <span className="text-gray-500 text-xs font-bold">{idea.author?.name?.charAt(0) || '?'}</span>
-                        )}
-                      </div>
-                      <span className="text-xs font-bold text-[#0f766e] hover:underline">{idea.author?.name || 'Neighbor'}</span>
-                    </a>
-                    <button className="text-xs font-bold text-[#0f766e] hover:underline">
-                      💬 Comment
-                    </button>
-                  </div>
+
+                {/* Discussion Toggle */}
+                <div className="border-t border-gray-100 pt-3">
+                  <button onClick={() => loadComments(idea.id)} className="text-[#ca8a04] text-sm font-bold hover:underline flex items-center gap-1">
+                    💬 {expandedIdeaId === idea.id ? 'Hide Discussion' : 'Join Discussion'}
+                  </button>
                 </div>
+
+                {/* Comments Section */}
+                {expandedIdeaId === idea.id && (
+                  <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                      {(!comments[idea.id] || comments[idea.id].length === 0) ? (
+                        <p className="text-xs text-gray-500 italic">No comments yet. Be the first!</p>
+                      ) : (
+                        comments[idea.id].map((comment: any) => (
+                          <div key={comment.id} className="bg-white p-3 rounded shadow-sm border border-gray-100">
+                            <span className="text-xs font-extrabold text-[#ca8a04]">{comment.users?.name || 'Neighbor'}</span>
+                            <p className="text-sm text-gray-700 mt-1">{comment.content}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    
+                    {/* Add Comment Input */}
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        placeholder="Add to the conversation..." 
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        className="flex-1 p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#ca8a04]"
+                      />
+                      <button onClick={() => submitComment(idea.id)} className="bg-[#ca8a04] text-white px-4 py-2 rounded font-bold text-sm shadow hover:bg-opacity-90">
+                        Post
+                      </button>
+                    </div>
+                  </div>
+                )}
+
               </div>
             ))}
           </div>
         )}
+
       </div>
     </div>
   );
