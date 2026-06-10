@@ -41,7 +41,7 @@ export default function IdeasPage() {
       if (userData?.is_admin) setIsAdmin(true);
     }
 
-    // Fetch Ideas
+    // Fetch Town Square Posts
     const { data: ideasData } = await supabase
       .from('community_ideas')
       .select('*, users(name)')
@@ -141,7 +141,6 @@ export default function IdeasPage() {
     }
   };
 
-  // Helper to calculate poll percentages
   const getPollStats = (ideaId: string, optionIndex: number, optionsLength: number) => {
     const postVotes = votes[ideaId] || [];
     const totalVotes = postVotes.length;
@@ -151,25 +150,26 @@ export default function IdeasPage() {
     return { percentage, optionVotes, totalVotes, hasVoted };
   };
 
-  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Community Town Square...</div>;
+  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Town Square...</div>;
 
   return (
-    <div className="min-h-screen bg-[#fefce8] p-4 font-sans pb-12">
+    <div className="min-h-screen bg-[#fdf2f8] p-4 font-sans pb-12">
+      {/* FIXED: Rebranded Navigation Title */}
       <nav className="bg-[#ca8a04] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-yellow-100 hover:underline">← Back</button>
-        <h1 className="text-xl font-bold tracking-widest text-center flex-1">Ideas</h1>
+        <h1 className="text-xl font-bold tracking-widest text-center flex-1">Town Square</h1>
         <a href="/" className="text-sm font-bold text-white hover:underline">Home</a>
       </nav>
 
       <div className="max-w-2xl mx-auto space-y-6">
         
-        {/* Header Hero */}
+        {/* FIXED: Rebranded Header Card */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#ca8a04] flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Town Square</h2>
-            <p className="text-gray-600 text-sm">Brainstorm, discuss, and vote on community initiatives.</p>
+            <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Digital Town Square</h2>
+            <p className="text-gray-600 text-sm">Brainstorm, discuss initiatives, and vote on community polls.</p>
           </div>
-          <button onClick={() => setShowNewPostForm(!showNewPostForm)} className="bg-[#ca8a04] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm">
+          <button onClick={() => setShowNewPostForm(!showNewPostForm)} className="bg-[#ca8a04] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm whitespace-nowrap ml-2">
             {showNewPostForm ? 'Cancel' : '+ New Post'}
           </button>
         </div>
@@ -177,17 +177,17 @@ export default function IdeasPage() {
         {/* New Post Form */}
         {showNewPostForm && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-yellow-200">
-            <h3 className="font-bold text-[#ca8a04] mb-4 text-lg">Share an Idea or Topic</h3>
+            <h3 className="font-bold text-[#ca8a04] mb-4 text-lg">Post to the Town Square</h3>
             
-            <input type="text" placeholder="Post Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
-            <textarea placeholder="What's on your mind? Share details here..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
+            <input type="text" placeholder="Topic or Question Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
+            <textarea placeholder="Add details or context for the neighborhood conversation..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
 
             {/* Admin Only: Create Poll Toggle */}
             {isAdmin && (
               <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
                 <label className="flex items-center cursor-pointer mb-3">
                   <input type="checkbox" checked={isPoll} onChange={(e) => setIsPoll(e.target.checked)} className="mr-2 w-4 h-4 text-[#ca8a04]" />
-                  <span className="font-bold text-sm text-[#854d0e]">Make this a Community Poll</span>
+                  <span className="font-bold text-sm text-[#854d0e]">Make this an Official Poll</span>
                 </label>
                 
                 {isPoll && (
@@ -214,17 +214,17 @@ export default function IdeasPage() {
         {/* Feed */}
         {ideas.length === 0 ? (
           <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-100 text-center text-yellow-800 font-bold text-sm shadow-sm">
-            The town square is quiet. Be the first to start a discussion!
+            The town square is quiet. Be the first to start a conversation!
           </div>
         ) : (
           <div className="space-y-4">
             {ideas.map((idea) => (
               <div key={idea.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm">
                 
-                {/* Post Header */}
+                {/* Post Title */}
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-bold text-xl text-gray-800">{idea.title}</h3>
-                  {idea.is_poll && <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">📊 Poll</span>}
+                  {idea.is_poll && <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">📊 Official Poll</span>}
                 </div>
                 
                 <p className="text-xs text-gray-500 font-bold mb-3 uppercase tracking-wider">
@@ -232,20 +232,18 @@ export default function IdeasPage() {
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">{idea.description}</p>
                 
-                {/* Poll Rendering */}
+                {/* Poll Options */}
                 {idea.is_poll && (
                   <div className="mb-4 space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
                     {idea.poll_options.map((opt: string, index: number) => {
                       const stats = getPollStats(idea.id, index, idea.poll_options.length);
                       return (
                         <div key={index} className="relative">
-                          {/* Voting Button / Result Bar */}
                           <button 
                             onClick={() => !stats.hasVoted && submitVote(idea.id, index)}
                             disabled={stats.hasVoted}
                             className={`w-full text-left p-3 rounded-lg border flex justify-between items-center relative overflow-hidden transition ${stats.hasVoted ? 'border-gray-300 bg-white cursor-default' : 'border-[#ca8a04] bg-white hover:bg-yellow-50 shadow-sm'}`}
                           >
-                            {/* Progress Fill */}
                             {stats.hasVoted && (
                               <div className="absolute left-0 top-0 bottom-0 bg-yellow-100" style={{ width: `${stats.percentage}%` }}></div>
                             )}
@@ -261,19 +259,19 @@ export default function IdeasPage() {
                   </div>
                 )}
 
-                {/* Discussion Toggle */}
+                {/* Comments Section Toggle */}
                 <div className="border-t border-gray-100 pt-3">
                   <button onClick={() => loadComments(idea.id)} className="text-[#ca8a04] text-sm font-bold hover:underline flex items-center gap-1">
-                    💬 {expandedIdeaId === idea.id ? 'Hide Discussion' : 'Join Discussion'}
+                    💬 {expandedIdeaId === idea.id ? 'Hide Comments' : 'View Conversation'}
                   </button>
                 </div>
 
-                {/* Comments Section */}
+                {/* Discussion Thread */}
                 {expandedIdeaId === idea.id && (
                   <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
                       {(!comments[idea.id] || comments[idea.id].length === 0) ? (
-                        <p className="text-xs text-gray-500 italic">No comments yet. Be the first!</p>
+                        <p className="text-xs text-gray-500 italic">No messages in this thread yet. Say hello!</p>
                       ) : (
                         comments[idea.id].map((comment: any) => (
                           <div key={comment.id} className="bg-white p-3 rounded shadow-sm border border-gray-100">
@@ -284,17 +282,16 @@ export default function IdeasPage() {
                       )}
                     </div>
                     
-                    {/* Add Comment Input */}
                     <div className="flex gap-2">
                       <input 
                         type="text" 
-                        placeholder="Add to the conversation..." 
+                        placeholder="Reply to the neighborhood..." 
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         className="flex-1 p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#ca8a04]"
                       />
                       <button onClick={() => submitComment(idea.id)} className="bg-[#ca8a04] text-white px-4 py-2 rounded font-bold text-sm shadow hover:bg-opacity-90">
-                        Post
+                        Reply
                       </button>
                     </div>
                   </div>
