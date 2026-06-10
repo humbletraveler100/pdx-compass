@@ -77,12 +77,12 @@ export default function Home() {
             <p className="text-gray-500 text-xs">Set up your identity.</p>
           </a>
 
+          {/* FIXED: Action-focused description for the Community Feed */}
           <a href="/feed" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#0f766e] hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Community Feed</h3>
-            <p className="text-gray-500 text-xs">View open requests.</p>
+            <p className="text-gray-500 text-xs">Requests for assistance - volunteer today.</p>
           </a>
 
-          {/* FIXED: Rebranded from "Ideas" to "Town Square" */}
           <a href="/ideas" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#fcd34d] hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Town Square</h3>
             <p className="text-gray-500 text-xs">Discuss & vote.</p>
