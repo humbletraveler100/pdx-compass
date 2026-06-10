@@ -20,7 +20,7 @@ export default function Home() {
           .select('*', { count: 'exact', head: true })
           .eq('user_id', session.user.id)
           .eq('is_read', false);
-        
+
         if (count) setUnreadCount(count);
       }
     };
@@ -71,20 +71,21 @@ export default function Home() {
 
         {/* Navigation Grid */}
         <div className="grid grid-cols-2 gap-4">
-          
+
           <a href="/profile" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Profile</h3>
             <p className="text-gray-500 text-xs">Set up your identity.</p>
           </a>
-          
+
           <a href="/feed" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#0f766e] hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Community Feed</h3>
             <p className="text-gray-500 text-xs">View open requests.</p>
           </a>
-          
+
+          {/* FIXED: Rebranded from "Ideas" to "Town Square" */}
           <a href="/ideas" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#fcd34d] hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Ideas</h3>
-            <p className="text-gray-500 text-xs">Share inspiration.</p>
+            <h3 className="font-bold text-[#164e63] text-lg mb-1">Town Square</h3>
+            <p className="text-gray-500 text-xs">Discuss & vote.</p>
           </a>
 
           <a href="/spotlight" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-pink-500 hover:shadow-md transition flex flex-col">
@@ -106,7 +107,7 @@ export default function Home() {
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Resources</h3>
             <p className="text-gray-500 text-xs">Find local support.</p>
           </a>
-          
+
         </div>
 
         {/* LEGAL & SAFETY FOOTER */}
@@ -121,7 +122,7 @@ export default function Home() {
             Legal Agreements & Privacy Policy
           </a>
           <p className="text-[#0f766e] text-xs opacity-70 mt-2">
-            © {new Date().getFullYear()} The Humble Travelers Foundation
+            © 2026 The Humble Travelers Foundation
           </p>
         </div>
 
