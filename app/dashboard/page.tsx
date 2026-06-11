@@ -4,10 +4,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
-// FORCE CLOUDFLARE TO BYPASS CACHE AND FETCH LIVE DATA EVERY TIME
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
@@ -35,7 +31,7 @@ export default function DashboardPage() {
       }
       setUser(session.user);
 
-      // Fetch from the dynamic database view live
+      // Fetch fresh, live score states directly from the summary view
       const { data: summaryData } = await supabase
         .from('neighbor_engagement_summary')
         .select('*')
@@ -51,7 +47,7 @@ export default function DashboardPage() {
         });
       }
 
-      // Fetch current requests
+      // Fetch open requests
       const { data } = await supabase
         .from('requests')
         .select('*')
