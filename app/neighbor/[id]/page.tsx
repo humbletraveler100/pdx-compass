@@ -14,7 +14,7 @@ export default function NeighborProfilePage() {
     const fetchProfile = async () => {
       if (!id) return;
       
-      // Look up target account using the correct primary key identity index
+      // Pull target profile using the clean, explicit primary key UUID string
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -64,7 +64,7 @@ export default function NeighborProfilePage() {
         <div>
           <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">"Why I'm Here" (Bio)</h3>
           <p className="text-sm text-gray-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
-            {profile.bio || profile.about_me || "This neighbor hasn't added a public bio intro statement yet."}
+            {profile.bio || "This neighbor hasn't added a public bio intro statement yet."}
           </p>
         </div>
 
