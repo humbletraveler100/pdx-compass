@@ -76,14 +76,12 @@ export default function IdeasPage() {
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `town-square/${fileName}`;
 
-      // Upload to your public bucket
       const { error: uploadError } = await supabase.storage
         .from('announcements')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // Get Public URL
       const { data } = supabase.storage
         .from('announcements')
         .getPublicUrl(filePath);
@@ -139,7 +137,7 @@ export default function IdeasPage() {
       setImageUrl('');
       setIsPoll(false);
       setPollOptions(['', '']);
-      fetchData(); // Refresh feed
+      fetchData();
     }
   };
 
@@ -206,6 +204,28 @@ export default function IdeasPage() {
           </button>
         </div>
 
+        {/* FIXED: Permanent Sticky Rules Callout Container */}
+        <div className="bg-amber-50 border-2 border-amber-200 p-5 rounded-xl shadow-sm text-gray-800 text-sm leading-relaxed">
+          <h3 className="font-extrabold text-amber-900 text-base mb-2 flex items-center gap-2">
+            📢 Community Reminder: Discussion Board Rules & Guidelines
+          </h3>
+          <p className="mb-3 font-medium text-amber-950">Hello everyone,</p>
+          <p className="mb-4 text-gray-700">
+            This is a quick, friendly reminder to review our community communication rules. Our goal is to maintain a welcoming, respectful, and productive space for everyone. Please keep the following guidelines in mind when participating in discussions:
+          </p>
+          <ul className="space-y-3 pl-1 mb-4 text-gray-700">
+            <li><strong>• Be Respectful and Kind:</strong> Treat all members with dignity. Direct all disagreements toward the idea, not the individual. Name-calling, personal attacks, and belittling comments are never permitted.</li>
+            <li><strong>• Keep it On-Topic:</strong> Stay focused on the thread's subject. Avoid posting irrelevant links, thoughts, or pictures that might dilute the value of the conversation.</li>
+            <li><strong>• Write Clearly and Thoughtfully:</strong> Avoid using ALL CAPS, as it is considered shouting. Proofread your posts for clarity, and avoid excessive sarcasm since written text can easily be misinterpreted.</li>
+            <li><strong>• Protect Privacy:</strong> Respect the privacy of your peers. Do not share screenshots, personal information, or copyrighted material without obtaining explicit permission first.</li>
+            <li><strong>• Zero Tolerance for Hate/Spam:</strong> Content containing hate speech, discrimination, harassment, or unauthorized self-promotion/spam will be removed immediately.</li>
+          </ul>
+          <p className="border-t border-amber-200 pt-3 text-xs text-amber-900 font-bold">
+            Thank you for helping us keep this space safe, helpful, and engaging for everyone. For the full list of our community guidelines, please review the <a href="/safety" className="underline hover:text-amber-700">Community Forum Rules</a> page.
+          </p>
+        </div>
+
+        {/* New Post Form */}
         {showNewPostForm && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-yellow-200">
             <h3 className="font-bold text-[#ca8a04] mb-4 text-lg">Post to the Town Square</h3>
@@ -213,7 +233,6 @@ export default function IdeasPage() {
             <input type="text" placeholder="Topic or Question Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
             <textarea placeholder="Add details or context for the neighborhood conversation..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
 
-            {/* NEW: Image Upload Section */}
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Add a Cover Photo (Optional)</label>
               <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-[#ca8a04] hover:file:bg-yellow-100" />
@@ -225,7 +244,6 @@ export default function IdeasPage() {
               )}
             </div>
 
-            {/* Admin Only: Create Poll Toggle */}
             {isAdmin && (
               <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
                 <label className="flex items-center cursor-pointer mb-3">
@@ -264,14 +282,12 @@ export default function IdeasPage() {
             {ideas.map((idea) => (
               <div key={idea.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm overflow-hidden">
                 
-                {/* NEW: Display Post Image if it exists */}
                 {idea.image_url && (
                   <div className="w-full h-48 -mx-5 -mt-5 mb-4 bg-gray-100 overflow-hidden border-b border-gray-100">
                     <img src={idea.image_url} alt={idea.title} className="w-full h-full object-cover" />
                   </div>
                 )}
 
-                {/* Post Title */}
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-bold text-xl text-gray-800">{idea.title}</h3>
                   {idea.is_poll && <span className="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">📊 Official Poll</span>}
@@ -282,7 +298,6 @@ export default function IdeasPage() {
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed mb-4 whitespace-pre-wrap">{idea.description}</p>
                 
-                {/* Poll Options */}
                 {idea.is_poll && (
                   <div className="mb-4 space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
                     {idea.poll_options.map((opt: string, index: number) => {
@@ -309,14 +324,12 @@ export default function IdeasPage() {
                   </div>
                 )}
 
-                {/* Comments Section Toggle */}
                 <div className="border-t border-gray-100 pt-3">
                   <button onClick={() => loadComments(idea.id)} className="text-[#ca8a04] text-sm font-bold hover:underline flex items-center gap-1">
                     💬 {expandedIdeaId === idea.id ? 'Hide Comments' : 'View Conversation'}
                   </button>
                 </div>
 
-                {/* Discussion Thread */}
                 {expandedIdeaId === idea.id && (
                   <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                     <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
