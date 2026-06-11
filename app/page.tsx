@@ -43,11 +43,18 @@ export default function Home() {
           </div>
           <h1 className="text-xl font-bold tracking-widest leading-tight">PDX<br/>Compass</h1>
         </div>
-        {user ? (
-          <button onClick={handleSignOut} className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign Out</button>
-        ) : (
-          <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign In</a>
-        )}
+        
+        {/* RIGHT ALIGNED HEADER ITEMS: Language & Auth */}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+          {/* Google Translate Dropdown Container */}
+          <div id="google_translate_element" className="bg-white text-black p-1 rounded-md shadow-inner text-xs font-bold"></div>
+
+          {user ? (
+            <button onClick={handleSignOut} className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign Out</button>
+          ) : (
+            <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign In</a>
+          )}
+        </div>
       </header>
 
       {/* Hero Section */}
@@ -77,7 +84,6 @@ export default function Home() {
             <p className="text-gray-500 text-xs">Set up your identity.</p>
           </a>
 
-          {/* FIXED: Action-focused description for the Community Feed */}
           <a href="/feed" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#0f766e] hover:shadow-md transition flex flex-col">
             <h3 className="font-bold text-[#164e63] text-lg mb-1">Community Feed</h3>
             <p className="text-gray-500 text-xs">Requests for assistance - volunteer today.</p>
