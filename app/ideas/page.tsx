@@ -89,8 +89,9 @@ export default function IdeasPage() {
     const cleanedOptions = isPoll ? pollOptions.filter(opt => opt.trim() !== '') : [];
     if (isPoll && cleanedOptions.length < 2) return alert("Polls require at least two valid options.");
 
+    // FIXED: The code mismatch. We must send 'author_id', not 'user_id'.
     const { error } = await supabase.from('community_ideas').insert({
-      user_id: currentUser.id,
+      author_id: currentUser.id,
       title: newTitle,
       description: newDescription,
       is_poll: isPoll,
@@ -98,6 +99,7 @@ export default function IdeasPage() {
     });
 
     if (error) {
+      // Show the precise error from image_10.png for debugging
       alert(`Error: ${error.message}`);
     } else {
       setShowNewPostForm(false);
@@ -154,7 +156,6 @@ export default function IdeasPage() {
 
   return (
     <div className="min-h-screen bg-[#fdf2f8] p-4 font-sans pb-12">
-      {/* FIXED: Rebranded Navigation Title */}
       <nav className="bg-[#ca8a04] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-yellow-100 hover:underline">← Back</button>
         <h1 className="text-xl font-bold tracking-widest text-center flex-1">Town Square</h1>
@@ -163,7 +164,6 @@ export default function IdeasPage() {
 
       <div className="max-w-2xl mx-auto space-y-6">
         
-        {/* FIXED: Rebranded Header Card */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#ca8a04] flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Digital Town Square</h2>
@@ -174,7 +174,6 @@ export default function IdeasPage() {
           </button>
         </div>
 
-        {/* New Post Form */}
         {showNewPostForm && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-yellow-200">
             <h3 className="font-bold text-[#ca8a04] mb-4 text-lg">Post to the Town Square</h3>
