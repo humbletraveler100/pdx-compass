@@ -12,13 +12,11 @@ export default function FeedPage() {
 
   useEffect(() => {
     const fetchFeed = async () => {
-      // FIXED: Enable Public Read-Only Previews by removing hard login gates
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setCurrentUser(session.user);
       }
 
-      // Fetch only "open" requests for the feed
       const { data } = await supabase
         .from('requests')
         .select('*')
@@ -26,14 +24,17 @@ export default function FeedPage() {
         .order('created_at', { ascending: false });
 
       if (data) setRequests(data);
-      setLoading(false);
+      loadingCacheFix();
     };
 
     fetchFeed();
   }, []);
 
+  const loadingCacheFix = () => {
+    setTimeout(() => setLoading(false), 100);
+  };
+
   const handleOfferHelp = async (requestOwnerId: string, requestTitle: string) => {
-    // GENTLE GATEWAY: Redirect guest reviewers to sign up/in gracefully
     if (!currentUser) {
       alert("Please sign in or create an account to offer help to your neighbors.");
       router.push('/login');
@@ -86,7 +87,6 @@ export default function FeedPage() {
     alert("Post flagged. An admin will review it shortly.");
   };
 
-  // HELPER: Map database tags to aesthetic, stylized UI badges
   const getTagStyle = (tag: string) => {
     switch (tag?.toLowerCase()) {
       case 'borrow':
@@ -118,7 +118,6 @@ export default function FeedPage() {
 
       <div className="max-w-2xl mx-auto px-4 space-y-6">
 
-        {/* Feed Header */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#0f766e] flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Open Requests</h2>
@@ -135,53 +134,55 @@ export default function FeedPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {requests.map((req) => (
-              <div key={req.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition relative overflow-hidden">
+            {requests.map((req) => {
+              // Ensure we check against correct database columns: user_id or author_id
+              const matchId = req.user_id || req.author_id;
+              const isOwnPost = currentUser && currentUser.id === matchId;
 
-                {/* Top Row: Title, Tag, & Flag Button */}
-                <div className="flex justify-between items-start gap-4 mb-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-bold text-lg text-[#164e63]">{req.title}</h3>
-                    {/* VISUAL TAG DISPLAY */}
-                    <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${getTagStyle(req.category_tag || 'General')}`}>
-                      {req.category_tag || 'General'}
-                    </span>
-                  </div>
-                  <button onClick={() => flagPost(req.id)} className="text-gray-400 hover:text-red-500 text-xs font-bold transition whitespace-nowrap" title="Report Post">
-                    🚩 Flag
-                  </button>
-                </div>
+              return (
+                <div key={req.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md transition relative overflow-hidden">
 
-                {/* Description */}
-                <p className="text-sm text-gray-700 mb-4 leading-relaxed">{req.description}</p>
-
-                {/* Action Row */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-gray-100 pt-3">
-
-                  {/* Dynamic Button Rendering */}
-                  {!currentUser || currentUser.id !== req.user_id ? (
-                    <button
-                      onClick={() => handleOfferHelp(req.user_id, req.title)}
-                      className="w-full sm:w-auto bg-[#fcd34d] text-[#78350f] px-5 py-2 rounded-lg font-bold shadow-sm hover:bg-opacity-90 text-sm transition flex items-center justify-center gap-2"
-                    >
-                      <span>🤝</span> Offer to Help
-                    </button>
-                  ) : (
-                    <div className="w-full sm:w-auto bg-gray-100 text-gray-500 px-5 py-2 rounded-lg font-bold text-sm text-center border border-gray-200">
-                      Your Request
+                  <div className="flex justify-between items-start gap-4 mb-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-bold text-lg text-[#164e63]">{req.title}</h3>
+                      <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${getTagStyle(req.category_tag || 'General')}`}>
+                        {req.category_tag || 'General'}
+                      </span>
                     </div>
-                  )}
-
-                  <button 
-                    onClick={() => currentUser ? router.push(`/neighbor/${req.user_id}`) : alert("Please sign in to view identity profiles.")}
-                    className="text-xs text-[#0f766e] font-bold hover:underline self-end sm:self-auto bg-transparent border-0 cursor-pointer"
-                  >
-                    View Neighbor Profile
+                    <button onClick={() => flagPost(req.id)} className="text-gray-400 hover:text-red-500 text-xs font-bold transition whitespace-nowrap" title="Report Post">
+                      🚩 Flag
                   </button>
-                </div>
+                  </div>
 
-              </div>
-            ))}
+                  <p className="text-sm text-gray-700 mb-4 leading-relaxed">{req.description}</p>
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-gray-100 pt-3">
+                    
+                    {/* FIXED: Completely remove "Offer to help" button if it's your own post */}
+                    {!isOwnPost ? (
+                      <button
+                        onClick={() => handleOfferHelp(matchId, req.title)}
+                        className="w-full sm:w-auto bg-[#fcd34d] text-[#78350f] px-5 py-2 rounded-lg font-bold shadow-sm hover:bg-opacity-90 text-sm transition flex items-center justify-center gap-2"
+                      >
+                        <span>🤝</span> Offer to Help
+                      </button>
+                    ) : (
+                      <div className="w-full sm:w-auto bg-slate-100 text-slate-500 px-5 py-2 rounded-lg font-bold text-sm text-center border border-slate-200 uppercase tracking-wider text-xs">
+                        Your Request
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => currentUser ? router.push(`/neighbor/${matchId}`) : alert("Please sign in to view identity profiles.")}
+                      className="text-xs text-[#0f766e] font-bold hover:underline bg-transparent border-0 cursor-pointer self-end sm:self-auto"
+                    >
+                      View Neighbor Profile
+                    </button>
+                  </div>
+
+                </div>
+              );
+            })}
           </div>
         )}
 
