@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
+// FORCE CLOUDFLARE TO BYPASS CACHE AND FETCH LIVE DATA EVERY TIME
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<any[]>([]);
@@ -31,7 +35,7 @@ export default function DashboardPage() {
       }
       setUser(session.user);
 
-      // Fetch from the dynamic database view
+      // Fetch from the dynamic database view live
       const { data: summaryData } = await supabase
         .from('neighbor_engagement_summary')
         .select('*')
@@ -44,16 +48,6 @@ export default function DashboardPage() {
           discussionPoints: summaryData.discussion_points || 0,
           pollPoints: summaryData.poll_points || 0,
           totalStars: summaryData.total_engagement_stars || 0
-        });
-      } else {
-        // Fallback calculation using custom defaults
-        const { count: doneTasks } = await supabase.from('requests').select('*', { count: 'exact', head: true }).eq('helper_id', session.user.id).eq('status', 'completed');
-        const tasksScore = (doneTasks || 0) * 3;
-        setStarsBreakdown({
-          taskPoints: tasksScore,
-          discussionPoints: 0,
-          pollPoints: 0,
-          totalStars: tasksScore
         });
       }
 
@@ -125,7 +119,6 @@ export default function DashboardPage() {
   if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Dashboard...</div>;
 
   return (
-    // NITPICK FIXED: Changed the background color from amber to clean slate/cyan shades
     <div className="min-h-screen bg-[#f0f9ff] p-4 font-sans pb-12">
       {/* Navigation Header */}
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
@@ -151,7 +144,7 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* TRACKER FIXED: Displays live stars breakdown layout */}
+        {/* RE-RENDERED JOURNEY TRACKER */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-teal-600">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
