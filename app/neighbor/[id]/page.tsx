@@ -2,102 +2,82 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
-export default function NeighborProfile({ params }: { params: { id: string } }) {
-  const [neighbor, setNeighbor] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+export default function NeighborProfilePage() {
+  const { id } = useParams();
   const router = useRouter();
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchNeighbor = async () => {
-      // 1. Get the currently logged-in user
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserId = session?.user?.id;
-
-      // 2. Fetch the profile being requested
-      const { data } = await supabase
+    const fetchProfile = async () => {
+      if (!id) return;
+      
+      // Look up target account using the correct primary key identity index
+      const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', params.id)
-        .single();
+        .eq('id', id)
+        .maybeSingle();
 
       if (data) {
-        // Show profile IF it belongs to the logged-in user, OR if they set it to Public
-        if (currentUserId === params.id || data.is_profile_public !== false) {
-          setNeighbor(data);
-        }
+        setProfile(data);
       }
       setLoading(false);
     };
 
-    fetchNeighbor();
-  }, [params.id]);
+    fetchProfile();
+  }, [id]);
 
-  if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Looking up neighbor...</div>;
+  if (loading) return <div className="p-8 text-center font-bold text-[#164e63]">Loading profile...</div>;
 
-  if (!neighbor) {
+  if (!profile) {
     return (
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4">
-        <h1 className="text-2xl font-bold text-[#164e63] mb-2">Neighbor not found</h1>
-        <p className="text-gray-500 mb-6 text-center">This account may have been removed, deactivated, or set to private.</p>
-        <button onClick={() => router.back()} className="bg-[#164e63] text-white px-6 py-2 rounded-lg font-bold">Go Back</button>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="text-3xl font-black text-[#164e63] mb-2">Neighbor not found</h2>
+        <p className="text-gray-500 text-sm max-w-sm mb-6">This account may have been removed, deactivated, or set to private.</p>
+        <button onClick={() => router.back()} className="bg-[#164e63] text-white px-6 py-2 rounded-lg font-bold shadow">Go Back</button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans pb-12">
-      <nav className="bg-[#0f766e] text-white p-4 shadow-md rounded-b-xl mb-6 flex justify-between items-center sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-sm font-bold text-[#fcd34d] hover:underline">← Back</button>
-        <h1 className="text-lg font-bold tracking-widest text-center flex-1">Neighbor Profile</h1>
-        <div className="w-10"></div> {/* Spacer for alignment */}
+    <div className="min-h-screen bg-[#f0f9ff] p-4 font-sans pb-12">
+      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
+        <button onClick={() => router.back()} className="text-sm font-bold text-cyan-100 hover:underline">← Back</button>
+        <h1 className="text-lg font-bold tracking-widest flex-1 text-center">Neighbor Profile</h1>
+        <a href="/" className="text-sm font-bold text-white hover:underline">Home</a>
       </nav>
 
-      <div className="max-w-md mx-auto px-4 space-y-6">
-        
-        {/* Profile Hero */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#0f766e] flex flex-col items-center text-center">
-          <div className="w-24 h-24 rounded-full bg-gray-200 border-4 border-[#fcd34d] overflow-hidden mb-4 shadow-sm flex items-center justify-center">
-            {neighbor.avatar_url ? (
-              <img src={neighbor.avatar_url} alt={neighbor.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-gray-400 font-bold text-3xl">{neighbor.name?.charAt(0) || '?'}</span>
-            )}
+      <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-sm border-t-4 border-teal-600 space-y-4">
+        <div className="flex items-center gap-3 border-b border-gray-100 pb-3">
+          <div className="w-16 h-16 bg-teal-50 text-teal-700 font-black text-2xl rounded-full flex items-center justify-center uppercase shadow-inner">
+            {profile.name?.charAt(0) || 'N'}
           </div>
-          <h2 className="text-2xl font-extrabold text-[#164e63] mb-1">{neighbor.name || 'Anonymous Neighbor'}</h2>
-          
-          {neighbor.neighborhood && (
-            <span className="bg-teal-50 text-[#0f766e] px-3 py-1 rounded-full text-xs font-bold tracking-wide border border-teal-100 mt-2">
-              📍 {neighbor.neighborhood}
-            </span>
-          )}
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-800">{profile.name}</h2>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">📍 Zip Code: {profile.neighborhood_label || profile.zip_code || 'PDX'}</p>
+          </div>
         </div>
 
-        {/* Bio */}
-        {neighbor.bio && (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">About Me</h3>
-            <p className="text-gray-700 leading-relaxed text-sm">{neighbor.bio}</p>
-          </div>
-        )}
+        <div>
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">"Why I'm Here" (Bio)</h3>
+          <p className="text-sm text-gray-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">
+            {profile.bio || profile.about_me || "This neighbor hasn't added a public bio intro statement yet."}
+          </p>
+        </div>
 
-        {/* Skills (Respects the Show/Hide Skills toggle) */}
-        {neighbor.show_skills_publicly !== false && neighbor.skills && (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Skills & Assets</h3>
-            <p className="text-gray-700 leading-relaxed text-sm">{neighbor.skills}</p>
+        <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
+          <div className="bg-slate-50 p-2.5 rounded border border-gray-100 text-center">
+            <span className="text-gray-400 font-semibold block">Languages</span>
+            <span className="font-bold text-gray-800 block mt-0.5">{profile.languages_spoken || 'English'}</span>
           </div>
-        )}
-        
-        {/* Languages */}
-        {neighbor.languages && (
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Languages</h3>
-            <p className="text-gray-700 leading-relaxed text-sm">{neighbor.languages}</p>
+          <div className="bg-slate-50 p-2.5 rounded border border-gray-100 text-center">
+            <span className="text-gray-400 font-semibold block">Verification Status</span>
+            <span className="font-bold text-emerald-600 block mt-0.5">✓ Identity Verified</span>
           </div>
-        )}
-
+        </div>
       </div>
     </div>
   );

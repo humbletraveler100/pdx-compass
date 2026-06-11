@@ -12,27 +12,27 @@ export default function FeedPage() {
 
   useEffect(() => {
     const fetchFeed = async () => {
+      // Safely capture active user session context without breaking on null values
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
+      if (session?.user) {
         setCurrentUser(session.user);
       }
 
-      const { data } = await supabase
+      // Fetch all open community needs directly
+      const { data, error } = await supabase
         .from('requests')
         .select('*')
         .eq('status', 'open')
         .order('created_at', { ascending: false });
 
-      if (data) setRequests(data);
-      loadingCacheFix();
+      if (data) {
+        setRequests(data);
+      }
+      setLoading(false);
     };
 
     fetchFeed();
   }, []);
-
-  const loadingCacheFix = () => {
-    setTimeout(() => setLoading(false), 100);
-  };
 
   const handleOfferHelp = async (requestOwnerId: string, requestTitle: string) => {
     if (!currentUser) {
@@ -135,7 +135,7 @@ export default function FeedPage() {
         ) : (
           <div className="space-y-4">
             {requests.map((req) => {
-              // Ensure we check against correct database columns: user_id or author_id
+              // Extract the true poster ID string uniformly
               const matchId = req.user_id || req.author_id;
               const isOwnPost = currentUser && currentUser.id === matchId;
 
@@ -151,14 +151,13 @@ export default function FeedPage() {
                     </div>
                     <button onClick={() => flagPost(req.id)} className="text-gray-400 hover:text-red-500 text-xs font-bold transition whitespace-nowrap" title="Report Post">
                       🚩 Flag
-                  </button>
+                    </button>
                   </div>
 
                   <p className="text-sm text-gray-700 mb-4 leading-relaxed">{req.description}</p>
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-gray-100 pt-3">
                     
-                    {/* FIXED: Completely remove "Offer to help" button if it's your own post */}
                     {!isOwnPost ? (
                       <button
                         onClick={() => handleOfferHelp(matchId, req.title)}
@@ -173,7 +172,7 @@ export default function FeedPage() {
                     )}
 
                     <button 
-                      onClick={() => currentUser ? router.push(`/neighbor/${matchId}`) : alert("Please sign in to view identity profiles.")}
+                      onClick={() => router.push(`/neighbor/${matchId}`)}
                       className="text-xs text-[#0f766e] font-bold hover:underline bg-transparent border-0 cursor-pointer self-end sm:self-auto"
                     >
                       View Neighbor Profile
