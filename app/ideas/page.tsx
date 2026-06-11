@@ -17,10 +17,12 @@ export default function IdeasPage() {
   // UI States
   const [expandedIdeaId, setExpandedIdeaId] = useState<string | null>(null);
   const [showNewPostForm, setShowNewPostForm] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   // New Post State
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [isPoll, setIsPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
   
@@ -64,6 +66,36 @@ export default function IdeasPage() {
     setLoading(false);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setUploadingImage(true);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `town-square/${fileName}`;
+
+      // Upload to your public bucket
+      const { error: uploadError } = await supabase.storage
+        .from('announcements')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get Public URL
+      const { data } = supabase.storage
+        .from('announcements')
+        .getPublicUrl(filePath);
+
+      setImageUrl(data.publicUrl);
+    } catch (error: any) {
+      alert(`Image upload failed: ${error.message}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const loadComments = async (ideaId: string) => {
     if (expandedIdeaId === ideaId) {
       setExpandedIdeaId(null);
@@ -89,22 +121,22 @@ export default function IdeasPage() {
     const cleanedOptions = isPoll ? pollOptions.filter(opt => opt.trim() !== '') : [];
     if (isPoll && cleanedOptions.length < 2) return alert("Polls require at least two valid options.");
 
-    // FIXED: The code mismatch. We must send 'author_id', not 'user_id'.
     const { error } = await supabase.from('community_ideas').insert({
-      author_id: currentUser.id,
+      user_id: currentUser.id,
       title: newTitle,
       description: newDescription,
+      image_url: imageUrl || null,
       is_poll: isPoll,
       poll_options: isPoll ? cleanedOptions : []
     });
 
     if (error) {
-      // Show the precise error from image_10.png for debugging
       alert(`Error: ${error.message}`);
     } else {
       setShowNewPostForm(false);
       setNewTitle('');
       setNewDescription('');
+      setImageUrl('');
       setIsPoll(false);
       setPollOptions(['', '']);
       fetchData(); // Refresh feed
@@ -123,7 +155,7 @@ export default function IdeasPage() {
 
     if (!error) {
       setNewComment('');
-      loadComments(ideaId); // Refresh comments for this post
+      loadComments(ideaId);
     }
   };
 
@@ -139,7 +171,7 @@ export default function IdeasPage() {
     if (error) {
       alert("You have already voted on this poll!");
     } else {
-      fetchData(); // Refresh to show updated votes
+      fetchData();
     }
   };
 
@@ -181,6 +213,18 @@ export default function IdeasPage() {
             <input type="text" placeholder="Topic or Question Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
             <textarea placeholder="Add details or context for the neighborhood conversation..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#ca8a04] mb-3" />
 
+            {/* NEW: Image Upload Section */}
+            <div className="mb-4">
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Add a Cover Photo (Optional)</label>
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-[#ca8a04] hover:file:bg-yellow-100" />
+              {uploadingImage && <p className="text-xs text-gray-500 italic mt-1">Uploading image...</p>}
+              {imageUrl && (
+                <div className="mt-2 relative w-full h-40 bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                  <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+
             {/* Admin Only: Create Poll Toggle */}
             {isAdmin && (
               <div className="mb-4 p-4 bg-yellow-50 rounded-lg border border-yellow-100">
@@ -204,7 +248,7 @@ export default function IdeasPage() {
               </div>
             )}
 
-            <button onClick={submitPost} className="w-full bg-[#ca8a04] text-white font-bold py-3 rounded-lg hover:bg-opacity-90 shadow">
+            <button onClick={submitPost} disabled={uploadingImage} className="w-full bg-[#ca8a04] text-white font-bold py-3 rounded-lg hover:bg-opacity-90 shadow disabled:opacity-50">
               Publish Post
             </button>
           </div>
@@ -218,8 +262,15 @@ export default function IdeasPage() {
         ) : (
           <div className="space-y-4">
             {ideas.map((idea) => (
-              <div key={idea.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm">
+              <div key={idea.id} className="bg-white border border-gray-200 p-5 rounded-xl shadow-sm overflow-hidden">
                 
+                {/* NEW: Display Post Image if it exists */}
+                {idea.image_url && (
+                  <div className="w-full h-48 -mx-5 -mt-5 mb-4 bg-gray-100 overflow-hidden border-b border-gray-100">
+                    <img src={idea.image_url} alt={idea.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+
                 {/* Post Title */}
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-bold text-xl text-gray-800">{idea.title}</h3>
