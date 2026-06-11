@@ -37,13 +37,12 @@ export default function IdeasPage() {
 
   const fetchData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
+    if (session?.user) {
       setCurrentUser(session.user);
       const { data: userData } = await supabase.from('users').select('is_admin').eq('id', session.user.id).single();
       if (userData?.is_admin) setIsAdmin(true);
     }
 
-    // Fetch Town Square Posts
     const { data: ideasData } = await supabase
       .from('community_ideas')
       .select('*, users(name)')
@@ -52,7 +51,6 @@ export default function IdeasPage() {
     if (ideasData) {
       setIdeas(ideasData);
       
-      // Fetch Votes for Polls
       const { data: votesData } = await supabase.from('poll_votes').select('*');
       const votesMap: any = {};
       if (votesData) {
@@ -199,12 +197,18 @@ export default function IdeasPage() {
             <h2 className="text-2xl font-extrabold text-gray-800 mb-1">Digital Town Square</h2>
             <p className="text-gray-600 text-sm">Brainstorm, discuss initiatives, and vote on community polls.</p>
           </div>
-          <button onClick={() => setShowNewPostForm(!showNewPostForm)} className="bg-[#ca8a04] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm whitespace-nowrap ml-2">
-            {showNewPostForm ? 'Cancel' : '+ New Post'}
-          </button>
+          {currentUser ? (
+            <button onClick={() => setShowNewPostForm(!showNewPostForm)} className="bg-[#ca8a04] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm whitespace-nowrap ml-2">
+              {showNewPostForm ? 'Cancel' : '+ New Post'}
+            </button>
+          ) : (
+            <button onClick={() => router.push('/login')} className="bg-[#ca8a04] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-sm whitespace-nowrap ml-2">
+              Log In to Post
+            </button>
+          )}
         </div>
 
-        {/* FIXED: Permanent Sticky Rules Callout Container */}
+        {/* Permanent Sticky Rules Callout Container */}
         <div className="bg-amber-50 border-2 border-amber-200 p-5 rounded-xl shadow-sm text-gray-800 text-sm leading-relaxed">
           <h3 className="font-extrabold text-amber-900 text-base mb-2 flex items-center gap-2">
             📢 Community Reminder: Discussion Board Rules & Guidelines
@@ -226,7 +230,7 @@ export default function IdeasPage() {
         </div>
 
         {/* New Post Form */}
-        {showNewPostForm && (
+        {showNewPostForm && currentUser && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-yellow-200">
             <h3 className="font-bold text-[#ca8a04] mb-4 text-lg">Post to the Town Square</h3>
             
@@ -302,12 +306,13 @@ export default function IdeasPage() {
                   <div className="mb-4 space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-100">
                     {idea.poll_options.map((opt: string, index: number) => {
                       const stats = getPollStats(idea.id, index, idea.poll_options.length);
+                      const canVote = currentUser && !stats.hasVoted;
                       return (
                         <div key={index} className="relative">
                           <button 
-                            onClick={() => !stats.hasVoted && submitVote(idea.id, index)}
-                            disabled={stats.hasVoted}
-                            className={`w-full text-left p-3 rounded-lg border flex justify-between items-center relative overflow-hidden transition ${stats.hasVoted ? 'border-gray-300 bg-white cursor-default' : 'border-[#ca8a04] bg-white hover:bg-yellow-50 shadow-sm'}`}
+                            onClick={() => canVote && submitVote(idea.id, index)}
+                            disabled={!canVote}
+                            className={`w-full text-left p-3 rounded-lg border flex justify-between items-center relative overflow-hidden transition ${!currentUser ? 'border-gray-200 bg-gray-50 cursor-default' : stats.hasVoted ? 'border-gray-300 bg-white cursor-default' : 'border-[#ca8a04] bg-white hover:bg-yellow-50 shadow-sm'}`}
                           >
                             {stats.hasVoted && (
                               <div className="absolute left-0 top-0 bottom-0 bg-yellow-100" style={{ width: `${stats.percentage}%` }}></div>
@@ -318,7 +323,10 @@ export default function IdeasPage() {
                         </div>
                       );
                     })}
-                    {getPollStats(idea.id, 0, 0).hasVoted && (
+                    {!currentUser && (
+                      <p className="text-center text-[11px] text-amber-800 font-bold mt-1">📊 Log in to vote on this neighborhood poll</p>
+                    )}
+                    {currentUser && getPollStats(idea.id, 0, 0).hasVoted && (
                       <p className="text-center text-xs text-gray-400 mt-2 font-bold">Total Votes: {votes[idea.id]?.length || 0}</p>
                     )}
                   </div>
@@ -345,18 +353,27 @@ export default function IdeasPage() {
                       )}
                     </div>
                     
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        placeholder="Reply to the neighborhood..." 
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="flex-1 p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#ca8a04]"
-                      />
-                      <button onClick={() => submitComment(idea.id)} className="bg-[#ca8a04] text-white px-4 py-2 rounded font-bold text-sm shadow hover:bg-opacity-90">
-                        Reply
-                      </button>
-                    </div>
+                    {/* FIXED: Toggle comment box input vs sign in badge hook */}
+                    {currentUser ? (
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          placeholder="Reply to the neighborhood..." 
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          className="flex-1 p-2 text-sm border border-gray-300 rounded focus:outline-none focus:border-[#ca8a04]"
+                        />
+                        <button onClick={() => submitComment(idea.id)} className="bg-[#ca8a04] text-white px-4 py-2 rounded font-bold text-sm shadow hover:bg-opacity-90">
+                          Reply
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-center p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                        <button onClick={() => router.push('/login')} className="text-xs font-extrabold text-[#ca8a04] bg-transparent border-0 cursor-pointer hover:underline">
+                          👋 Log in or create an account to join this conversation
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
