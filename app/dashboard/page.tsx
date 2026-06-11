@@ -9,8 +9,15 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState(0);
   
+  // Dynamic Score States
+  const [starsBreakdown, setStarsBreakdown] = useState({
+    taskPoints: 0,
+    discussionPoints: 0,
+    pollPoints: 0,
+    totalStars: 0
+  });
+
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [helperEmail, setHelperEmail] = useState('');
 
@@ -25,14 +32,21 @@ export default function DashboardPage() {
       }
       setUser(session.user);
 
-      // Fetch user's completed tasks for the Journey Tracker
-      const { data: userData } = await supabase
-        .from('users')
-        .select('completed_tasks')
-        .eq('id', session.user.id)
-        .single();
-        
-      if (userData) setCompletedTasks(userData.completed_tasks || 0);
+      // FETCH DYNAMIC ENGAGEMENT STAR DATA
+      const { data: summaryData } = await supabase
+        .from('neighbor_engagement_summary')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (summaryData) {
+        setStarsBreakdown({
+          taskPoints: summaryData.task_points || 0,
+          discussionPoints: summaryData.discussion_points || 0,
+          pollPoints: summaryData.poll_points || 0,
+          totalStars: summaryData.total_engagement_stars || 0
+        });
+      }
 
       // Fetch user's requests
       const { data } = await supabase
@@ -40,7 +54,7 @@ export default function DashboardPage() {
         .select('*')
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
-      
+
       if (data) setRequests(data);
 
       // Fetch unread alerts count
@@ -49,7 +63,7 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', session.user.id)
         .eq('is_read', false);
-      
+
       if (count) setUnreadCount(count);
 
       setLoading(false);
@@ -67,7 +81,7 @@ export default function DashboardPage() {
         .select('id')
         .eq('email', helperEmail.trim())
         .maybeSingle();
-      
+
       if (error || !helperData) {
         alert("We couldn't find a user with that email. Please check the spelling, or leave it blank if they aren't on the app.");
         return;
@@ -77,9 +91,9 @@ export default function DashboardPage() {
 
     const { error: updateError } = await supabase
       .from('requests')
-      .update({ 
-        status: 'pending_approval', 
-        helper_id: helperId 
+      .update({
+        status: 'pending_approval',
+        helper_id: helperId
       })
       .eq('id', taskId);
 
@@ -128,16 +142,37 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* MY JOURNEY TRACKER */}
+        {/* EXTENDED COMMUNITY JOURNEYTRACKER */}
         <div className="bg-[#fef3c7] p-6 rounded-xl shadow-sm border border-[#fde047]">
-          <h2 className="text-xl font-extrabold text-[#b45309] mb-4 flex items-center gap-2">
-            🌟 My Journey
-          </h2>
-          <p className="text-[#92400e] text-lg flex items-center gap-2">
-            <span className="text-green-600 font-extrabold text-xl">✓</span> {completedTasks} Tasks Completed
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-xl font-extrabold text-[#b45309] flex items-center gap-2">
+              🌟 My Community Journey
+            </h2>
+            <span className="bg-[#b45309] text-white px-3 py-1 rounded-full font-black text-sm shadow-xs animate-bounce">
+              {starsBreakdown.totalStars} Total Stars
+            </span>
+          </div>
+          
+          <p className="text-xs text-[#92400e] font-semibold uppercase tracking-wider mb-4 border-b border-yellow-200 pb-2">
+            Each star acts as an automatic entry ticket into our monthly Reward Drawing.
           </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-white p-3 rounded-lg border border-yellow-200 text-center shadow-xs">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">🤝 Mutual Aid</p>
+              <p className="text-lg font-black text-emerald-700 mt-1">+{starsBreakdown.taskPoints} Stars</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-yellow-200 text-center shadow-xs">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">📊 Town Polls</p>
+              <p className="text-lg font-black text-blue-700 mt-1">+{starsBreakdown.pollPoints} Stars</p>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-yellow-200 text-center shadow-xs">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">💬 Discussions</p>
+              <p className="text-lg font-black text-purple-700 mt-1">+{starsBreakdown.discussionPoints} Stars</p>
+            </div>
+          </div>
         </div>
-        
+
         {/* OPEN REQUESTS */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#b45309]">
           <h2 className="text-2xl font-extrabold text-gray-800 mb-2">My Open Requests</h2>
@@ -152,7 +187,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {requests.map((task) => (
               <div key={task.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
-                
+
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-800">{task.title}</h3>
@@ -178,15 +213,15 @@ export default function DashboardPage() {
                   <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mt-2">
                     <p className="text-sm font-bold text-[#164e63] mb-2">Who helped you with this?</p>
                     <p className="text-xs text-gray-500 mb-3">Enter their account email so they can receive a Reward Drawing entry. Leave blank if they are not on the app.</p>
-                    
-                    <input 
-                      type="email" 
-                      placeholder="neighbor@email.com" 
+
+                    <input
+                      type="email"
+                      placeholder="neighbor@email.com"
                       value={helperEmail}
                       onChange={(e) => setHelperEmail(e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none mb-3 text-sm"
                     />
-                    
+
                     <div className="flex gap-2">
                       <button onClick={() => submitFulfillment(task.id)} className="flex-1 bg-[#164e63] text-white px-4 py-2 rounded font-bold shadow hover:bg-opacity-90 text-sm transition">
                         Submit for Verification
