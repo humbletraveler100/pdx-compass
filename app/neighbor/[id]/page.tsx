@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useParams, useRouter } from 'next/navigation';
 
+// FORCE CLOUDFLARE TO COMPILE THIS DYNAMIC ROUTE ON THE EDGE NETWORK
+export const runtime = 'edge';
+
 export default function NeighborProfilePage() {
   const { id } = useParams();
   const router = useRouter();
