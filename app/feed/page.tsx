@@ -132,8 +132,8 @@ export default function FeedPage() {
         ) : (
           <div className="space-y-4">
             {requests.map((req) => {
-              -- DEFENSIVE CHECK: Catch every variation of creator identity columns dynamically
-              const matchId = req.user_id || req.author_id || req.created_by || req.helper_id;
+              // LOCKED IN MATCH KEY: Explicitly target requester_id column from schema layout
+              const matchId = req.requester_id;
               const isOwnPost = currentUser && currentUser.id === matchId;
 
               return (
@@ -178,7 +178,7 @@ export default function FeedPage() {
                     <button 
                       onClick={() => {
                         if (!matchId) {
-                          alert("System context notice: This request row layout does not have an attached owner key.");
+                          alert("Error: requester_id missing on this post record.");
                           return;
                         }
                         currentUser ? router.push(`/neighbor/${matchId}`) : alert("Please sign in to view identity profiles.");
