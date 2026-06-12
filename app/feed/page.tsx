@@ -132,7 +132,8 @@ export default function FeedPage() {
         ) : (
           <div className="space-y-4">
             {requests.map((req) => {
-              const matchId = req.user_id || req.author_id;
+              -- DEFENSIVE CHECK: Catch every variation of creator identity columns dynamically
+              const matchId = req.user_id || req.author_id || req.created_by || req.helper_id;
               const isOwnPost = currentUser && currentUser.id === matchId;
 
               return (
@@ -154,7 +155,6 @@ export default function FeedPage() {
 
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-t border-gray-100 pt-3">
                     
-                    {/* FIXED: Differentiate Button for Authenticated Neighbor vs Anonymous Previewer */}
                     {!currentUser ? (
                       <button
                         onClick={() => router.push('/login')}
@@ -176,7 +176,13 @@ export default function FeedPage() {
                     )}
 
                     <button 
-                      onClick={() => currentUser ? router.push(`/neighbor/${matchId}`) : alert("Please sign in to view identity profiles.")}
+                      onClick={() => {
+                        if (!matchId) {
+                          alert("System context notice: This request row layout does not have an attached owner key.");
+                          return;
+                        }
+                        currentUser ? router.push(`/neighbor/${matchId}`) : alert("Please sign in to view identity profiles.");
+                      }}
                       className="text-xs text-[#0f766e] font-bold hover:underline bg-transparent border-0 cursor-pointer self-end sm:self-auto"
                     >
                       View Neighbor Profile
