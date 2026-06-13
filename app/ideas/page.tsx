@@ -111,7 +111,7 @@ export default function IdeasPage() {
   };
 
   const submitPost = async () => {
-    if (!currentUser) return router.push('/login');
+    if (!currentUser) return router.push('/login?returnTo=/ideas');
     if (!newTitle.trim() || !newDescription.trim()) return alert("Title and description are required.");
 
     const cleanedOptions = isPoll ? pollOptions.filter(opt => opt.trim() !== '') : [];
@@ -140,7 +140,7 @@ export default function IdeasPage() {
   };
 
   const submitComment = async (ideaId: string) => {
-    if (!currentUser) return router.push('/login');
+    if (!currentUser) return router.push('/login?returnTo=/ideas');
     if (!newComment.trim()) return;
 
     const { error } = await supabase.from('idea_comments').insert({
@@ -156,7 +156,7 @@ export default function IdeasPage() {
   };
 
   const submitVote = async (ideaId: string, optionIndex: number) => {
-    if (!currentUser) return router.push('/login');
+    if (!currentUser) return router.push('/login?returnTo=/ideas');
 
     const { error } = await supabase.from('poll_votes').insert({
       idea_id: ideaId,
@@ -183,9 +183,7 @@ export default function IdeasPage() {
   if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Town Square...</div>;
 
   return (
-    // THEME UPDATE: Soft blue background replacing old colors
     <div className="min-h-screen bg-[#f0f9ff] p-4 font-sans pb-12">
-      {/* Navbar: High-contrast Deep Indigo with Sky accents */}
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-cyan-200 hover:underline">← Back</button>
         <h1 className="text-lg font-bold tracking-widest text-center flex-1">Town Square</h1>
@@ -194,7 +192,6 @@ export default function IdeasPage() {
 
       <div className="max-w-2xl mx-auto space-y-6">
         
-        {/* Header Block with Clean Action Triggers */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-cyan-600 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-extrabold text-gray-800 mb-1">Digital Town Square</h2>
@@ -205,13 +202,12 @@ export default function IdeasPage() {
               {showNewPostForm ? 'Cancel' : '+ New Post'}
             </button>
           ) : (
-            <button onClick={() => router.push('/login')} className="bg-[#164e63] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-xs font-extrabold whitespace-nowrap ml-4">
+            <button onClick={() => router.push('/login?returnTo=/ideas')} className="bg-[#164e63] text-white px-4 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition text-xs font-extrabold whitespace-nowrap ml-4">
               Log In to Post
             </button>
           )}
         </div>
 
-        {/* Dynamic Theme Upgrade on Sticky Guidelines Card */}
         <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-xs text-gray-700 text-sm leading-relaxed">
           <h3 className="font-extrabold text-[#164e63] text-base mb-2 flex items-center gap-2">
             📢 Community Reminder: Forum Rules & Guidelines
@@ -232,7 +228,6 @@ export default function IdeasPage() {
           </p>
         </div>
 
-        {/* Post Form */}
         {showNewPostForm && currentUser && (
           <div className="bg-white p-6 rounded-xl shadow-md border border-slate-200">
             <h3 className="font-bold text-[#164e63] mb-4 text-lg">Post to the Town Square</h3>
@@ -279,7 +274,6 @@ export default function IdeasPage() {
           </div>
         )}
 
-        {/* Conversation Streams */}
         {ideas.length === 0 ? (
           <div className="bg-slate-50 p-6 rounded-lg border border-gray-200 text-center text-gray-500 font-bold text-sm shadow-sm">
             The town square is quiet. Be the first to start a conversation!
@@ -371,7 +365,7 @@ export default function IdeasPage() {
                       </div>
                     ) : (
                       <div className="text-center p-2 bg-slate-100 border border-slate-200 rounded-lg">
-                        <button onClick={() => router.push('/login')} className="text-xs font-extrabold text-cyan-800 bg-transparent border-0 cursor-pointer hover:underline">
+                        <button onClick={() => router.push('/login?returnTo=/ideas')} className="text-xs font-extrabold text-cyan-800 bg-transparent border-0 cursor-pointer hover:underline">
                           👋 Log in or create an account to join this conversation
                         </button>
                       </div>

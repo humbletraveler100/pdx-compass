@@ -34,7 +34,7 @@ export default function FeedPage() {
 
   const handleOfferHelp = async (requestOwnerId: string, requestTitle: string) => {
     if (!currentUser) {
-      router.push('/login');
+      router.push('/login?returnTo=/feed');
       return;
     }
 
@@ -132,7 +132,6 @@ export default function FeedPage() {
         ) : (
           <div className="space-y-4">
             {requests.map((req) => {
-              // LOCKED IN MATCH KEY: Explicitly target requester_id column from schema layout
               const matchId = req.requester_id;
               const isOwnPost = currentUser && currentUser.id === matchId;
 
@@ -157,7 +156,7 @@ export default function FeedPage() {
                     
                     {!currentUser ? (
                       <button
-                        onClick={() => router.push('/login')}
+                        onClick={() => router.push('/login?returnTo=/feed')}
                         className="w-full sm:w-auto bg-[#0f766e] text-white px-5 py-2 rounded-lg font-bold shadow-sm hover:bg-opacity-90 text-sm transition flex items-center justify-center gap-2"
                       >
                         👋 Sign In to Volunteer
@@ -181,7 +180,8 @@ export default function FeedPage() {
                           alert("Error: requester_id missing on this post record.");
                           return;
                         }
-                        currentUser ? router.push(`/neighbor/${matchId}`) : alert("Please sign in to view identity profiles.");
+                        // SMART ROUTING: Remember exact profile they wanted to view!
+                        currentUser ? router.push(`/neighbor/${matchId}`) : router.push(`/login?returnTo=/neighbor/${matchId}`);
                       }}
                       className="text-xs text-[#0f766e] font-bold hover:underline bg-transparent border-0 cursor-pointer self-end sm:self-auto"
                     >
