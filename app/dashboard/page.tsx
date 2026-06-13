@@ -9,7 +9,7 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
-  
+
   const [starsBreakdown, setStarsBreakdown] = useState({
     taskPoints: 0,
     discussionPoints: 0,
@@ -69,9 +69,13 @@ export default function DashboardPage() {
     fetchDashboard();
   }, [router]);
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
   const submitFulfillment = async (taskId: string) => {
     let helperId = null;
-
     if (helperEmail.trim() !== '') {
       const { data: helperData, error } = await supabase
         .from('users')
@@ -116,13 +120,57 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#f0f9ff] p-4 font-sans pb-12">
-      {/* Navigation Header */}
-      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-widest">My Dashboard</h1>
-        <a href="/" className="text-sm font-bold text-[#e0f2fe] hover:underline">Home</a>
+      
+      {/* NEW COMMAND CENTER HEADER */}
+      <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0 z-20">
+        <div className="flex-1 w-full sm:w-auto flex justify-center sm:justify-start">
+          <div id="google_translate_element" className="min-h-[32px]"></div>
+        </div>
+        <h1 className="text-xl font-bold tracking-widest text-center whitespace-nowrap">My Dashboard</h1>
+        <div className="flex-1 w-full sm:w-auto flex justify-center sm:justify-end">
+          <button 
+            onClick={handleSignOut} 
+            className="text-sm font-bold text-[#e0f2fe] bg-transparent border border-[#e0f2fe] px-4 py-1.5 rounded-lg hover:bg-white hover:text-[#164e63] transition"
+          >
+            Sign Out
+          </button>
+        </div>
       </nav>
 
       <div className="max-w-2xl mx-auto space-y-6">
+
+        {/* NEW 6-BUTTON NAVIGATION GRID */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <button onClick={() => router.push('/profile')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
+            <span className="text-2xl group-hover:scale-110 transition-transform">👤</span>
+            <span className="text-xs font-bold text-gray-700">My Profile</span>
+          </button>
+          
+          <button onClick={() => router.push('/ask')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
+            <span className="text-2xl group-hover:scale-110 transition-transform">🛠️</span>
+            <span className="text-xs font-bold text-gray-700">Ask for Help</span>
+          </button>
+          
+          <button onClick={() => router.push('/feed')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
+            <span className="text-2xl group-hover:scale-110 transition-transform">🤝</span>
+            <span className="text-xs font-bold text-gray-700 text-center leading-tight">Help a<br/>Neighbor</span>
+          </button>
+          
+          <button onClick={() => router.push('/ideas')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
+            <span className="text-2xl group-hover:scale-110 transition-transform">💬</span>
+            <span className="text-xs font-bold text-gray-700">Town Square</span>
+          </button>
+          
+          <button onClick={() => router.push('/spotlight')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
+            <span className="text-2xl group-hover:scale-110 transition-transform">🌟</span>
+            <span className="text-xs font-bold text-gray-700">Spotlight</span>
+          </button>
+          
+          <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-500 transition group flex flex-col items-center justify-center gap-2 text-center">
+            <span className="text-2xl group-hover:scale-110 transition-transform">🗺️</span>
+            <span className="text-[10px] font-bold text-blue-700 leading-tight">PDX Resource<br/>Compass</span>
+          </a>
+        </div>
 
         {/* ALERTS INBOX BANNER */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-cyan-500 flex justify-between items-center">
@@ -185,7 +233,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             {requests.map((task) => (
               <div key={task.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
-
+                
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg text-gray-800">{task.title}</h3>
@@ -198,7 +246,7 @@ export default function DashboardPage() {
 
                 {task.status === 'open' && completingTaskId !== task.id && (
                   <div className="flex gap-2 pt-2 border-t border-gray-100">
-                    <button onClick={() => setCompletingTaskId(task.id)} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm transition">
+                    <button onClick={() => setCompleting:TaskId(task.id)} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm transition">
                       Mark as Fulfilled
                     </button>
                     <button onClick={() => deleteRequest(task.id)} className="px-4 py-2 text-red-600 font-bold text-sm hover:underline">
@@ -211,7 +259,7 @@ export default function DashboardPage() {
                   <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mt-2">
                     <p className="text-sm font-bold text-[#164e63] mb-2">Who helped you with this?</p>
                     <p className="text-xs text-gray-500 mb-3">Enter their account email so they can receive a Reward Drawing entry. Leave blank if they are not on the app.</p>
-
+                    
                     <input
                       type="email"
                       placeholder="neighbor@email.com"
@@ -219,7 +267,7 @@ export default function DashboardPage() {
                       onChange={(e) => setHelperEmail(e.target.value)}
                       className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-[#0f766e] outline-none mb-3 text-sm"
                     />
-
+                    
                     <div className="flex gap-2">
                       <button onClick={() => submitFulfillment(task.id)} className="flex-1 bg-[#164e63] text-white px-4 py-2 rounded font-bold shadow hover:bg-opacity-90 text-sm transition">
                         Submit for Verification
