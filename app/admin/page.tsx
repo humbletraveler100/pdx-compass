@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [reports, setReports] = useState<any[]>([]);
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [volunteers, setVolunteers] = useState<any[]>([]);
+  
   const router = useRouter();
 
   // Megaphone State
@@ -38,27 +39,27 @@ export default function AdminDashboard() {
 
       if (userData?.is_admin) {
         setIsAdmin(true);
-        
+
         // 1. Fetch Flagged Reports
         const { data: reportData } = await supabase.from('reports').select('*');
         if (reportData) {
           const enrichedReports = await Promise.all(reportData.map(async (report) => {
             let postData = null;
             let postType = 'Unknown';
-            const targetId = report.post_id || report.id; 
-
+            const targetId = report.post_id || report.id;
+            
             if (targetId) {
-                const { data: reqData } = await supabase.from('requests').select('title, description').eq('id', targetId).maybeSingle();
-                if (reqData) {
-                  postData = reqData;
-                  postType = 'request';
-                } else {
-                  const { data: ideaData } = await supabase.from('community_ideas').select('title, description').eq('id', targetId).maybeSingle();
-                  if (ideaData) {
-                    postData = ideaData;
-                    postType = 'idea';
-                  }
+              const { data: reqData } = await supabase.from('requests').select('title, description').eq('id', targetId).maybeSingle();
+              if (reqData) {
+                postData = reqData;
+                postType = 'request';
+              } else {
+                const { data: ideaData } = await supabase.from('community_ideas').select('title, description').eq('id', targetId).maybeSingle();
+                if (ideaData) {
+                  postData = ideaData;
+                  postType = 'idea';
                 }
+              }
             }
             return { ...report, postData, postType, targetId };
           }));
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
           .from('requests')
           .select('*')
           .eq('status', 'pending_approval');
-        
+
         if (tasksData) {
           const enrichedTasks = await Promise.all(tasksData.map(async (task) => {
             let helperName = "Unknown Neighbor";
@@ -83,13 +84,13 @@ export default function AdminDashboard() {
           setPendingTasks(enrichedTasks);
         }
 
-        // 3. Fetch Volunteers for the Raffle
+        // 3. Fetch NEW Dynamic Volunteers (From the Engagement Summary View)
         const { data: volData } = await supabase
-          .from('users')
-          .select('id, name, email, completed_tasks')
-          .gt('completed_tasks', 0)
-          .order('completed_tasks', { ascending: false });
-        
+          .from('neighbor_engagement_summary')
+          .select('user_id, name, email, total_engagement_stars')
+          .gt('total_engagement_stars', 0)
+          .order('total_engagement_stars', { ascending: false });
+
         if (volData) setVolunteers(volData);
 
       } else {
@@ -108,14 +109,13 @@ export default function AdminDashboard() {
       alert("Please fill out both the title and content.");
       return;
     }
-    
+
     setIsPosting(true);
     let imageUrl = null;
 
     if (announcementImage) {
       const fileExt = announcementImage.name.split('.').pop();
       const fileName = `spotlight-${Date.now()}.${fileExt}`;
-
       const { error: uploadError } = await supabase.storage.from('compass-images').upload(fileName, announcementImage);
       
       if (uploadError) {
@@ -123,7 +123,6 @@ export default function AdminDashboard() {
         setIsPosting(false);
         return;
       }
-
       const { data } = supabase.storage.from('compass-images').getPublicUrl(fileName);
       imageUrl = data.publicUrl;
     }
@@ -146,17 +145,17 @@ export default function AdminDashboard() {
     setIsPosting(false);
   };
 
-  // --- RAFFLE DRAW ALGORITHM ---
+  // --- NEW STARS RAFFLE DRAW ALGORITHM ---
   const drawWinner = () => {
     if (volunteers.length === 0) {
-      alert("There are no volunteer entries yet!");
+      alert("There are no entries yet this month!");
       return;
     }
 
-    // Create a weighted pool: if someone has 3 entries, add their name 3 times
+    // Create a weighted pool using total_engagement_stars
     const drawingPool: any[] = [];
     volunteers.forEach((vol) => {
-      for (let i = 0; i < vol.completed_tasks; i++) {
+      for (let i = 0; i < vol.total_engagement_stars; i++) {
         drawingPool.push(vol);
       }
     });
@@ -185,33 +184,21 @@ export default function AdminDashboard() {
     } else if (postType === 'idea') {
       await supabase.from('community_ideas').delete().eq('id', targetId);
     }
-
     await dismissReport(reportId);
     alert("Post successfully deleted for violating safety standards.");
   };
 
   // --- TASK VERIFICATION FUNCTIONS ---
   const approveTask = async (taskId: string, helperId: string) => {
-    const confirmApprove = window.confirm("Approve this task and award a Volunteer Raffle entry to the helper?");
+    const confirmApprove = window.confirm("Approve this task? Stars will automatically be awarded to the helper via the database.");
     if (!confirmApprove) return;
-
+    
     try {
+      // We only need to change the status! The database view handles the math automatically now.
       await supabase.from('requests').update({ status: 'verified' }).eq('id', taskId);
-
-      if (helperId) {
-        const { data: helperData } = await supabase.from('users').select('completed_tasks').eq('id', helperId).single();
-        const currentScore = helperData?.completed_tasks || 0;
-        await supabase.from('users').update({ completed_tasks: currentScore + 1 }).eq('id', helperId);
-        
-        const updatedVolunteers = volunteers.map(vol => 
-          vol.id === helperId ? { ...vol, completed_tasks: vol.completed_tasks + 1 } : vol
-        );
-        // If they weren't in the list before, they won't automatically show until refresh, but this updates existing ones visually.
-        setVolunteers(updatedVolunteers);
-      }
-
       setPendingTasks(pendingTasks.filter(t => t.id !== taskId));
-      alert("✅ Task verified! The helper has been awarded their raffle entry.");
+      
+      alert("✅ Task verified! The system will automatically update the neighbor's Star count.");
     } catch (error) {
       alert("There was an error verifying this task. Please try again.");
     }
@@ -226,7 +213,7 @@ export default function AdminDashboard() {
   };
 
   if (loading) return <div className="min-h-screen bg-gray-100 p-8 text-center text-[#164e63] font-bold">Verifying Credentials...</div>;
-  if (!isAdmin) return null; 
+  if (!isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 font-sans pb-12">
@@ -235,7 +222,7 @@ export default function AdminDashboard() {
           <span className="text-xl">🛡️</span>
           <h1 className="text-lg font-bold tracking-widest">Command Center</h1>
         </div>
-        <a href="/" className="text-sm font-bold text-gray-300 hover:text-white">Exit Admin</a>
+        <a href="/dashboard" className="text-sm font-bold text-gray-300 hover:text-white">Exit Admin</a>
       </nav>
 
       <div className="max-w-4xl mx-auto space-y-6">
@@ -244,36 +231,19 @@ export default function AdminDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-red-800">
           <h2 className="text-2xl font-extrabold text-gray-800 mb-2">📢 The Megaphone</h2>
           <p className="text-gray-600 text-sm mb-4">Publish official Foundation events and updates directly to the Spotlight feed.</p>
-          
+
           {!isMegaphoneOpen ? (
             <button onClick={() => setIsMegaphoneOpen(true)} className="bg-red-800 text-white px-5 py-2 rounded-lg font-bold shadow hover:bg-opacity-90 transition">
               + Create Announcement
             </button>
           ) : (
             <div className="bg-red-50 p-4 rounded-lg border border-red-200 mt-4">
-              <input 
-                type="text" 
-                placeholder="Announcement Title" 
-                value={announcementTitle}
-                onChange={(e) => setAnnouncementTitle(e.target.value)}
-                className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm font-bold text-gray-800"
-              />
-              <textarea 
-                placeholder="Write your official update here..." 
-                value={announcementContent}
-                onChange={(e) => setAnnouncementContent(e.target.value)}
-                rows={4}
-                className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm text-gray-800"
-              />
-              
+              <input type="text" placeholder="Announcement Title" value={announcementTitle} onChange={(e) => setAnnouncementTitle(e.target.value)} className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm font-bold text-gray-800" />
+              <textarea placeholder="Write your official update here..." value={announcementContent} onChange={(e) => setAnnouncementContent(e.target.value)} rows={4} className="w-full p-2 border border-red-300 rounded focus:ring-2 focus:ring-red-800 outline-none mb-3 text-sm text-gray-800" />
+
               <div className="mb-4 p-3 bg-white border border-red-200 rounded-lg flex flex-col gap-2">
                 <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Attach Image (Optional)</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={(e) => setAnnouncementImage(e.target.files ? e.target.files[0] : null)}
-                  className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                />
+                <input type="file" accept="image/*" onChange={(e) => setAnnouncementImage(e.target.files ? e.target.files[0] : null)} className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100" />
               </div>
 
               <div className="flex gap-2">
@@ -293,7 +263,7 @@ export default function AdminDashboard() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h2 className="text-2xl font-extrabold text-gray-800 mb-1">🎟️ Raffle Manager</h2>
-              <p className="text-gray-600 text-sm">A complete list of all volunteers and their current number of reward entries.</p>
+              <p className="text-gray-600 text-sm">A complete list of all volunteers and their current number of reward entries (Stars).</p>
             </div>
             <button onClick={drawWinner} className="bg-yellow-500 text-yellow-900 px-4 py-2 rounded-lg font-bold shadow hover:bg-yellow-400 transition text-sm whitespace-nowrap ml-2">
               Draw Random Winner
@@ -311,69 +281,51 @@ export default function AdminDashboard() {
               </button>
             </div>
           )}
-          
+
           {volunteers.length === 0 ? (
-            <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-100 text-center text-yellow-800 font-bold text-sm">
-              No verified tasks yet. The entries will appear here!
-            </div>
+            <p className="text-gray-500 text-sm italic border-t border-gray-100 pt-4">No engagement points logged yet this month.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm text-gray-700">
-                <thead className="bg-gray-50 text-xs uppercase text-gray-500 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 font-bold">Neighbor</th>
-                    <th className="px-4 py-3 font-bold">Email (Contact)</th>
-                    <th className="px-4 py-3 font-bold text-center">Raffle Entries</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {volunteers.map((vol) => (
-                    <tr key={vol.id} className="bg-white hover:bg-yellow-50 transition">
-                      <td className="px-4 py-3 font-bold text-[#164e63]">{vol.name || 'Anonymous'}</td>
-                      <td className="px-4 py-3 text-gray-500">{vol.email}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="bg-yellow-100 text-yellow-800 py-1 px-3 rounded-full font-extrabold shadow-sm">
-                          {vol.completed_tasks}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-2 border-t border-gray-100 pt-4">
+              {volunteers.map((vol, index) => (
+                <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200">
+                  <div>
+                    <p className="font-bold text-gray-800">{vol.name}</p>
+                    <p className="text-xs text-gray-500">{vol.email}</p>
+                  </div>
+                  <span className="bg-yellow-100 text-yellow-800 font-black px-3 py-1 rounded-full text-sm">
+                    {vol.total_engagement_stars} Stars
+                  </span>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Verification & Raffles */}
+        {/* VERIFICATION QUEUE */}
         <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-600">
-          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">✅ Task Verification Queue</h2>
-          <p className="text-gray-600 text-sm mb-4">Review completed community tasks to award badges and entries.</p>
-          
+          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">✅ Verification Queue</h2>
+          <p className="text-gray-600 text-sm mb-4">Review and approve completed tasks to securely release points.</p>
+
           {pendingTasks.length === 0 ? (
-            <div className="bg-blue-50 p-6 rounded-lg border border-blue-100 text-center text-blue-800 font-bold text-sm">
-              Verification Queue is currently empty.
+            <div className="bg-blue-50 p-4 rounded text-blue-800 text-sm font-bold text-center border border-blue-100">
+              The verification queue is empty.
             </div>
           ) : (
             <div className="space-y-4">
               {pendingTasks.map((task) => (
-                <div key={task.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">Pending Verification</p>
-                    </div>
-                    <div className="bg-gray-50 border-l-4 border-blue-300 p-3 rounded-r-md text-sm text-gray-800 mb-3">
-                      <p className="font-bold mb-1">"{task.title}"</p>
-                      <p className="opacity-80 text-xs">{task.description}</p>
-                    </div>
-                    <p className="text-sm text-gray-700"><strong>Helper to Reward:</strong> {task.helperName}</p>
+                <div key={task.id} className="bg-gray-50 border border-gray-200 p-4 rounded-lg">
+                  <h3 className="font-bold text-gray-800 text-lg mb-1">{task.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{task.description}</p>
+                  <div className="bg-white p-3 rounded border border-blue-100 mb-4">
+                    <p className="text-xs font-bold text-blue-800 uppercase tracking-wider mb-1">Volunteered By:</p>
+                    <p className="text-gray-800 font-semibold">{task.helperName}</p>
                   </div>
-                  
                   <div className="flex gap-2">
-                    <button onClick={() => approveTask(task.id, task.helper_id)} className="flex-1 bg-blue-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-blue-700 text-sm transition">
-                      Approve & Award Entry
+                    <button onClick={() => approveTask(task.id, task.helper_id)} className="flex-1 bg-blue-600 text-white font-bold py-2 rounded shadow hover:bg-blue-700 transition text-sm">
+                      Approve & Release Points
                     </button>
-                    <button onClick={() => rejectTask(task.id)} className="flex-1 bg-gray-200 text-gray-700 border border-gray-300 px-4 py-3 rounded font-bold shadow hover:bg-gray-300 text-sm transition">
-                      Reject (Send Back)
+                    <button onClick={() => rejectTask(task.id)} className="px-4 py-2 text-red-600 font-bold hover:underline text-sm border border-red-200 rounded bg-white">
+                      Reject
                     </button>
                   </div>
                 </div>
@@ -382,41 +334,41 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Flagged Content */}
-        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-orange-500">
-          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">🚨 Flagged Content</h2>
-          <p className="text-gray-600 text-sm mb-4">Review posts reported by the community for safety violations.</p>
-          
+        {/* REPORTED POSTS */}
+        <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-gray-800">
+          <h2 className="text-2xl font-extrabold text-gray-800 mb-2">🚩 Flagged Content</h2>
+          <p className="text-gray-600 text-sm mb-4">Review content flagged by the community for safety violations.</p>
+
           {reports.length === 0 ? (
-            <div className="bg-orange-50 p-6 rounded-lg border border-orange-100 text-center text-orange-800 font-bold text-sm">
-              No flagged content right now. The community is healthy!
+            <div className="bg-gray-50 p-4 rounded text-gray-500 text-sm font-bold text-center border border-gray-200">
+              No active reports to review.
             </div>
           ) : (
             <div className="space-y-4">
               {reports.map((report) => (
-                <div key={report.id} className="bg-white border border-gray-200 p-5 rounded-lg shadow-sm flex flex-col gap-4">
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <p className="text-xs text-red-600 font-bold uppercase tracking-wider">Flagged: {report.reason || 'Review Required'}</p>
-                      <span className="text-[10px] text-gray-400 font-mono bg-gray-100 px-2 py-1 rounded">ID: {report.targetId ? report.targetId.substring(0,8) : 'Unknown'}</span>
-                    </div>
-                    <div className="bg-gray-50 border-l-4 border-gray-300 p-3 rounded-r-md text-sm text-gray-800">
-                      {report.postData ? (
-                        <>
-                          <p className="font-bold mb-1">{report.postData.title}</p>
-                          <p className="opacity-80">{report.postData.description}</p>
-                        </>
-                      ) : (
-                        <p className="italic text-gray-500">Post content could not be loaded. It may have already been deleted.</p>
-                      )}
-                    </div>
+                <div key={report.id} className="bg-red-50 border border-red-200 p-4 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="bg-red-100 text-red-800 text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider">
+                      Flagged {report.postType}
+                    </span>
+                    <span className="text-xs text-red-400 font-bold">Report ID: {report.id.substring(0,8)}...</span>
                   </div>
+                  
+                  {report.postData ? (
+                    <div className="bg-white p-3 rounded border border-red-100 mb-4">
+                      <p className="font-bold text-gray-800 mb-1">{report.postData.title}</p>
+                      <p className="text-sm text-gray-600 italic">"{report.postData.description}"</p>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic mb-4">Original post data could not be found (it may have been deleted).</p>
+                  )}
+
                   <div className="flex gap-2">
-                    <button onClick={() => dismissReport(report.id)} className="flex-1 bg-green-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-green-700 text-sm transition">
-                      Allow (Dismiss)
-                    </button>
-                    <button onClick={() => deletePost(report.id, report.targetId, report.postType)} className="flex-1 bg-red-600 text-white px-4 py-3 rounded font-bold shadow hover:bg-red-700 text-sm transition" disabled={!report.postData}>
+                    <button onClick={() => deletePost(report.id, report.targetId, report.postType)} className="flex-1 bg-red-700 text-white font-bold py-2 rounded shadow hover:bg-red-800 transition text-sm">
                       Delete Post
+                    </button>
+                    <button onClick={() => dismissReport(report.id)} className="px-4 py-2 text-gray-600 font-bold hover:underline text-sm bg-white border border-gray-300 rounded">
+                      Dismiss Flag
                     </button>
                   </div>
                 </div>
