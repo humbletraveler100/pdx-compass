@@ -4,135 +4,168 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  const [user, setUser] = useState<any>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
+export default function FrontPorch() {
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const checkUserAndAlerts = async () => {
+    const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-
-      if (session?.user) {
-        const { count } = await supabase
-          .from('notifications')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', session.user.id)
-          .eq('is_read', false);
-
-        if (count) setUnreadCount(count);
+      if (session) {
+        router.push('/dashboard'); // Skip porch, go straight to home
+      } else {
+        setLoading(false); // Show the porch
       }
     };
-    checkUserAndAlerts();
-  }, []);
+    checkSession();
+  }, [router]);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    router.push('/');
-  };
+  if (loading) {
+    return <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center text-[#0f766e] font-bold">Loading PDX Compass...</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-[#cffafe] font-sans pb-4">
-      {/* Header */}
-      <header className="bg-[#164e63] text-white p-4 flex justify-between items-center rounded-b-xl shadow-md">
+    <div className="min-h-screen bg-[#f8fafc] font-sans pb-12 selection:bg-teal-200">
+      
+      {/* HEADER */}
+      <nav className="bg-white p-4 shadow-sm border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0 z-20">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🧭</span>
+          <h1 className="text-xl font-black text-[#164e63] tracking-wider uppercase">PDX Compass</h1>
+        </div>
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden shadow-sm">
-             <img src="https://humbletravelers.org/assets/images/thtf-compass-logo.png" alt="PDX Compass Logo" className="w-full h-full object-cover" />
-          </div>
-          <h1 className="text-xl font-bold tracking-widest leading-tight">PDX<br/>Compass</h1>
+          <span className="text-xs text-gray-500 hidden sm:inline">Already a neighbor?</span>
+          <button 
+            onClick={() => router.push('/login')} 
+            className="bg-transparent border-2 border-[#0f766e] text-[#0f766e] px-5 py-1.5 rounded-lg font-bold hover:bg-teal-50 transition text-sm"
+          >
+            Sign in to your account
+          </button>
         </div>
+      </nav>
+
+      <div className="max-w-3xl mx-auto px-4 mt-8 space-y-10">
         
-        {/* RIGHT ALIGNED HEADER ITEMS: Language & Auth */}
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
-          {/* Google Translate Dropdown Container */}
-          <div id="google_translate_element" className="bg-white text-black p-1 rounded-md shadow-inner text-xs font-bold"></div>
-
-          {user ? (
-            <button onClick={handleSignOut} className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign Out</button>
-          ) : (
-            <a href="/login" className="bg-[#fcd34d] text-[#164e63] px-4 py-2 rounded-full font-bold text-sm shadow hover:bg-opacity-90">Sign In</a>
-          )}
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <div className="px-6 pt-10 pb-8 text-center">
-        <h2 className="text-3xl font-extrabold text-[#164e63] leading-tight mb-4">
-          We Are All Travelers Shaping Stronger Communities Together
-        </h2>
-        <p className="text-[#0f766e] text-base mb-8 px-2">
-          A Portland-based 501(c)(3) fostering inclusion, bridging divides, and building capacity through grassroots engagement.
-        </p>
-        <a href="/ask" className="inline-block bg-[#164e63] text-white px-6 py-3 rounded-lg font-bold shadow-lg hover:bg-opacity-90 transition">
-          Ask for Help
-        </a>
-      </div>
-
-      <div className="max-w-md mx-auto px-4 space-y-6">
-        {/* Safety Notice */}
-        <div className="bg-[#fed7aa] p-5 rounded-xl text-sm text-[#78350f] shadow-sm">
-          <strong>Safety Notice:</strong> The Humble Travelers Foundation requires all neighbors to verify their identity before exchanging services.
-        </div>
-
-        {/* Navigation Grid */}
-        <div className="grid grid-cols-2 gap-4">
-
-          <a href="/profile" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Profile</h3>
-            <p className="text-gray-500 text-xs">Set up your identity.</p>
-          </a>
-
-          <a href="/feed" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#0f766e] hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Community Feed</h3>
-            <p className="text-gray-500 text-xs">Requests for assistance - volunteer today.</p>
-          </a>
-
-          <a href="/ideas" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#fcd34d] hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Town Square</h3>
-            <p className="text-gray-500 text-xs">Discuss & vote.</p>
-          </a>
-
-          <a href="/spotlight" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-pink-500 hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Spotlight</h3>
-            <p className="text-gray-500 text-xs">Community wins.</p>
-          </a>
-
-          <a href="/dashboard" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-[#b45309] hover:shadow-md transition flex flex-col relative">
-            {unreadCount > 0 && (
-              <span className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
-                {unreadCount}
-              </span>
-            )}
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Dashboard</h3>
-            <p className="text-gray-500 text-xs">Manage activity.</p>
-          </a>
-
-          <a href="http://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-indigo-500 hover:shadow-md transition flex flex-col">
-            <h3 className="font-bold text-[#164e63] text-lg mb-1">Resources</h3>
-            <p className="text-gray-500 text-xs">Find local support.</p>
-          </a>
-
-        </div>
-
-        {/* LEGAL & SAFETY FOOTER */}
-        <div className="mt-10 pt-6 border-t border-[#0f766e] border-opacity-20 text-center pb-8 flex flex-col gap-2">
-          <a href="/rewards" className="text-[#164e63] text-sm font-extrabold hover:underline flex items-center justify-center gap-1">
-            🎁 Monthly Reward Drawing Rules
-          </a>
-          <a href="/safety" className="text-[#0f766e] text-sm font-bold hover:underline mt-2">
-            Community Safety Standards
-          </a>
-          <a href="/legal" className="text-[#0f766e] text-sm font-bold hover:underline">
-            Legal Agreements & Privacy Policy
-          </a>
-          <p className="text-[#0f766e] text-xs opacity-70 mt-2">
-            © 2026 The Humble Travelers Foundation
+        {/* HERO SECTION */}
+        <div className="text-center space-y-5 py-6">
+          <h2 className="text-4xl sm:text-5xl font-black text-gray-800 leading-tight">
+            We Are All Travelers – Helping Each Other Build a Stronger Portland
+          </h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto font-medium">
+            A Portland-based 501(c)(3) connecting neighbors to share help, lift up local voices, and find trusted resources when life gets hard.
           </p>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
+            <button onClick={() => router.push('/ask')} className="w-full sm:w-auto bg-[#0f766e] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition text-lg">
+              Ask for Help
+              <span className="block text-[10px] font-normal mt-0.5 opacity-90">Post a request for tasks or tools</span>
+            </button>
+            <button onClick={() => router.push('/feed')} className="w-full sm:w-auto bg-white border-2 border-[#0f766e] text-[#0f766e] px-8 py-3 rounded-xl font-bold shadow-sm hover:bg-teal-50 transition text-lg">
+              See Who Needs Help
+              <span className="block text-[10px] font-normal mt-0.5 opacity-80">Browse requests before signing up</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SAFETY MICRO-BLOCK */}
+        <div className="bg-amber-50 border-l-4 border-[#ca8a04] p-5 rounded-r-xl shadow-sm text-sm">
+          <h3 className="font-extrabold text-[#854d0e] mb-1 flex items-center gap-2">
+            🛡️ Safety Notice
+          </h3>
+          <p className="text-[#713f12] leading-relaxed mb-2">
+            The Humble Travelers Foundation facilitates community connections but does not supervise or guarantee services between neighbors. We require identity verification before exchanging services and never share your exact address or contact info publicly.
+          </p>
+          <a href="/safety" className="text-[#ca8a04] font-bold hover:underline text-xs uppercase tracking-wider">
+            Review Community Safety Standards →
+          </a>
+        </div>
+
+        {/* ACTION TILES */}
+        <div>
+          <h3 className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Choose how you'd like to start</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">🛠️</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Need a Hand</h4>
+              <p className="text-sm text-gray-500 mb-4 h-16">Ask for help with things like moving a fridge, yard work, rides, tech setup, or borrowing tools.</p>
+              <button onClick={() => router.push('/ask')} className="text-[#0f766e] font-bold text-sm group-hover:underline">Post a Request →</button>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">🤝</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Want to Help</h4>
+              <p className="text-sm text-gray-500 mb-4 h-16">See who needs help today and offer support when it fits your time and skills.</p>
+              <button onClick={() => router.push('/feed')} className="text-[#0f766e] font-bold text-sm group-hover:underline">View Community Feed →</button>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">💬</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Want a Say</h4>
+              <p className="text-sm text-gray-500 mb-4 h-16">Join neighborhood discussions and vote in Town Square polls on local issues and priorities.</p>
+              <button onClick={() => router.push('/ideas')} className="text-[#164e63] font-bold text-sm group-hover:underline">Visit Town Square →</button>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">🗺️</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Need Resources</h4>
+              <p className="text-sm text-gray-500 mb-4 h-16">Find Portland organizations offering housing, food, shelter, health care, and crisis support.</p>
+              <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold text-sm group-hover:underline">Open PDX Resource Compass ↗</a>
+            </div>
+
+          </div>
+        </div>
+
+        {/* HOW IT WORKS */}
+        <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="text-xl font-black text-[#164e63] mb-6 border-b border-gray-100 pb-4">How PDX Community Compass Works</h3>
+          <div className="space-y-6">
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-black flex items-center justify-center shrink-0">1</div>
+              <div>
+                <h4 className="font-bold text-gray-800">Look Around</h4>
+                <p className="text-sm text-gray-600 mt-1">Browse open requests, Town Square topics, and resource listings. You can explore most of the app before creating an account.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-black flex items-center justify-center shrink-0">2</div>
+              <div>
+                <h4 className="font-bold text-gray-800">Join as a Neighbor</h4>
+                <p className="text-sm text-gray-600 mt-1">Create a free account, verify your identity, and set your neighborhood. Your exact address and contact info stay private.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-teal-100 text-teal-800 font-black flex items-center justify-center shrink-0">3</div>
+              <div>
+                <h4 className="font-bold text-gray-800">Ask, Offer, or Speak Up</h4>
+                <p className="text-sm text-gray-600 mt-1">Post a request, volunteer, or participate in Town Square polls. Your actions earn <strong className="text-amber-500">stars</strong> that count toward a monthly drawing.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* WHY STARS */}
+        <div className="bg-slate-800 text-white p-8 rounded-2xl shadow-md">
+          <h3 className="text-lg font-black text-amber-400 mb-3">⭐ Why Stars and a Monthly Drawing?</h3>
+          <ul className="space-y-3 text-sm text-slate-300 pl-4 list-disc marker:text-slate-500">
+            <li>Each mutual aid task you complete, poll you vote in, or constructive comment you contribute earns engagement stars.</li>
+            <li>Stars act as automatic entries in a monthly drawing—no tickets to buy, no pay-for-labor—just a thank you for being active in the community.</li>
+            <li>Full details are available in the <a href="/rewards" className="text-amber-400 hover:underline font-bold">Monthly Reward Drawing Rules</a>.</li>
+          </ul>
         </div>
 
       </div>
+
+      {/* FOOTER */}
+      <footer className="mt-16 border-t border-gray-200 bg-white py-8 text-center text-xs font-bold text-gray-400 uppercase tracking-widest space-y-4">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-8 px-4">
+          <a href="/rewards" className="hover:text-gray-800 transition">Reward Rules</a>
+          <a href="/safety" className="hover:text-gray-800 transition">Safety Standards</a>
+          <a href="/legal" className="hover:text-gray-800 transition">Legal Agreements</a>
+          <a href="#" className="hover:text-gray-800 transition">Privacy Policy</a>
+        </div>
+        <p className="opacity-50 tracking-normal capitalize pt-4">© 2026 The Humble Travelers Foundation.</p>
+      </footer>
+
     </div>
   );
 }
