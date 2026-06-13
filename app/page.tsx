@@ -12,9 +12,9 @@ export default function FrontPorch() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        router.push('/dashboard'); // Skip porch, go straight to home
+        router.push('/dashboard'); 
       } else {
-        setLoading(false); // Show the porch
+        setLoading(false); 
       }
     };
     checkSession();
@@ -27,19 +27,18 @@ export default function FrontPorch() {
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans pb-12 selection:bg-teal-200">
       
-      {/* HEADER */}
+      {/* HEADER: Sign-in remains here for desktop/header scanners */}
       <nav className="bg-white p-4 shadow-sm border-b border-gray-200 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🧭</span>
           <h1 className="text-xl font-black text-[#164e63] tracking-wider uppercase">PDX Compass</h1>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500 hidden sm:inline">Already a neighbor?</span>
           <button 
             onClick={() => router.push('/login')} 
             className="bg-transparent border-2 border-[#0f766e] text-[#0f766e] px-5 py-1.5 rounded-lg font-bold hover:bg-teal-50 transition text-sm"
           >
-            Sign in to your account
+            Sign In
           </button>
         </div>
       </nav>
@@ -54,19 +53,60 @@ export default function FrontPorch() {
           <p className="text-lg text-gray-600 max-w-2xl mx-auto font-medium">
             A Portland-based 501(c)(3) connecting neighbors to share help, lift up local voices, and find trusted resources when life gets hard.
           </p>
+          
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-4">
             <button onClick={() => router.push('/ask')} className="w-full sm:w-auto bg-[#0f766e] text-white px-8 py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition text-lg">
               Ask for Help
-              <span className="block text-[10px] font-normal mt-0.5 opacity-90">Post a request for tasks or tools</span>
             </button>
             <button onClick={() => router.push('/feed')} className="w-full sm:w-auto bg-white border-2 border-[#0f766e] text-[#0f766e] px-8 py-3 rounded-xl font-bold shadow-sm hover:bg-teal-50 transition text-lg">
               See Who Needs Help
-              <span className="block text-[10px] font-normal mt-0.5 opacity-80">Browse requests before signing up</span>
             </button>
+          </div>
+          
+          {/* FEEDBACK IMPLEMENTED: Obvious returning user sign-in route directly under primary CTAs */}
+          <p className="pt-2 text-sm text-gray-500 font-bold">
+            Already a neighbor? <button onClick={() => router.push('/login')} className="text-[#0f766e] hover:underline cursor-pointer">Sign in to your account.</button>
+          </p>
+        </div>
+
+        {/* FEEDBACK IMPLEMENTED: Action Tiles moved UP above Safety Notice to guarantee mobile "above-the-fold" visibility */}
+        <div>
+          <h3 className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Choose how you'd like to start</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">🛠️</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Need a Hand</h4>
+              {/* FEEDBACK IMPLEMENTED: Tighter, verb-led copy */}
+              <p className="text-sm text-gray-500 mb-4">Ask neighbors for help with tasks, tools, rides, or support.</p>
+              <button onClick={() => router.push('/ask')} className="text-[#0f766e] font-bold text-sm group-hover:underline">Post a Request →</button>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">🤝</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Want to Help</h4>
+              <p className="text-sm text-gray-500 mb-4">See who needs help today and volunteer when you can.</p>
+              <button onClick={() => router.push('/feed')} className="text-[#0f766e] font-bold text-sm group-hover:underline">View Community Feed →</button>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">💬</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Want a Say</h4>
+              <p className="text-sm text-gray-500 mb-4">Visit Town Square to read local topics and participate in polls.</p>
+              <button onClick={() => router.push('/ideas')} className="text-[#164e63] font-bold text-sm group-hover:underline">Visit Town Square →</button>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
+              <div className="text-3xl mb-3">🗺️</div>
+              <h4 className="text-lg font-black text-gray-800 mb-2">I Need Resources</h4>
+              <p className="text-sm text-gray-500 mb-4">Open the PDX Resource Compass for housing, food, health, and more.</p>
+              <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold text-sm group-hover:underline">Open PDX Resource Compass ↗</a>
+            </div>
+
           </div>
         </div>
 
-        {/* SAFETY MICRO-BLOCK */}
+        {/* SAFETY MICRO-BLOCK: Moved below tiles for better flow */}
         <div className="bg-amber-50 border-l-4 border-[#ca8a04] p-5 rounded-r-xl shadow-sm text-sm">
           <h3 className="font-extrabold text-[#854d0e] mb-1 flex items-center gap-2">
             🛡️ Safety Notice
@@ -77,42 +117,6 @@ export default function FrontPorch() {
           <a href="/safety" className="text-[#ca8a04] font-bold hover:underline text-xs uppercase tracking-wider">
             Review Community Safety Standards →
           </a>
-        </div>
-
-        {/* ACTION TILES */}
-        <div>
-          <h3 className="text-center text-sm font-bold text-gray-400 uppercase tracking-widest mb-6">Choose how you'd like to start</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
-              <div className="text-3xl mb-3">🛠️</div>
-              <h4 className="text-lg font-black text-gray-800 mb-2">I Need a Hand</h4>
-              <p className="text-sm text-gray-500 mb-4 h-16">Ask for help with things like moving a fridge, yard work, rides, tech setup, or borrowing tools.</p>
-              <button onClick={() => router.push('/ask')} className="text-[#0f766e] font-bold text-sm group-hover:underline">Post a Request →</button>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
-              <div className="text-3xl mb-3">🤝</div>
-              <h4 className="text-lg font-black text-gray-800 mb-2">I Want to Help</h4>
-              <p className="text-sm text-gray-500 mb-4 h-16">See who needs help today and offer support when it fits your time and skills.</p>
-              <button onClick={() => router.push('/feed')} className="text-[#0f766e] font-bold text-sm group-hover:underline">View Community Feed →</button>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
-              <div className="text-3xl mb-3">💬</div>
-              <h4 className="text-lg font-black text-gray-800 mb-2">I Want a Say</h4>
-              <p className="text-sm text-gray-500 mb-4 h-16">Join neighborhood discussions and vote in Town Square polls on local issues and priorities.</p>
-              <button onClick={() => router.push('/ideas')} className="text-[#164e63] font-bold text-sm group-hover:underline">Visit Town Square →</button>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
-              <div className="text-3xl mb-3">🗺️</div>
-              <h4 className="text-lg font-black text-gray-800 mb-2">I Need Resources</h4>
-              <p className="text-sm text-gray-500 mb-4 h-16">Find Portland organizations offering housing, food, shelter, health care, and crisis support.</p>
-              <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold text-sm group-hover:underline">Open PDX Resource Compass ↗</a>
-            </div>
-
-          </div>
         </div>
 
         {/* HOW IT WORKS */}
@@ -143,14 +147,15 @@ export default function FrontPorch() {
           </div>
         </div>
 
-        {/* WHY STARS */}
+        {/* WHY STARS: FEEDBACK IMPLEMENTED - Clean, single sentence explanation */}
         <div className="bg-slate-800 text-white p-8 rounded-2xl shadow-md">
           <h3 className="text-lg font-black text-amber-400 mb-3">⭐ Why Stars and a Monthly Drawing?</h3>
-          <ul className="space-y-3 text-sm text-slate-300 pl-4 list-disc marker:text-slate-500">
-            <li>Each mutual aid task you complete, poll you vote in, or constructive comment you contribute earns engagement stars.</li>
-            <li>Stars act as automatic entries in a monthly drawing—no tickets to buy, no pay-for-labor—just a thank you for being active in the community.</li>
-            <li>Full details are available in the <a href="/rewards" className="text-amber-400 hover:underline font-bold">Monthly Reward Drawing Rules</a>.</li>
-          </ul>
+          <p className="text-sm text-slate-300 leading-relaxed mb-4">
+            Stars help us recognize mutual aid and civic participation; they are automatic entries in a monthly drawing, not payment for labor.
+          </p>
+          <a href="/rewards" className="text-amber-400 hover:text-amber-300 font-bold text-sm flex items-center gap-1 group">
+            Review the Monthly Reward Drawing Rules <span className="group-hover:translate-x-1 transition-transform">→</span>
+          </a>
         </div>
 
       </div>
