@@ -246,7 +246,7 @@ export default function DashboardPage() {
 
                 {task.status === 'open' && completingTaskId !== task.id && (
                   <div className="flex gap-2 pt-2 border-t border-gray-100">
-                    <button onClick={() => setCompleting:TaskId(task.id)} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm transition">
+                    <button onClick={() => setCompletingTaskId(task.id)} className="flex-1 bg-green-600 text-white px-4 py-2 rounded font-bold shadow hover:bg-green-700 text-sm transition">
                       Mark as Fulfilled
                     </button>
                     <button onClick={() => deleteRequest(task.id)} className="px-4 py-2 text-red-600 font-bold text-sm hover:underline">
