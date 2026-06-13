@@ -23,6 +23,23 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // 1. Load Google Translate Script
+    if (!document.getElementById('google-translate-script')) {
+      const script = document.createElement('script');
+      script.id = 'google-translate-script';
+      script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.async = true;
+      document.body.appendChild(script);
+      
+      (window as any).googleTranslateElementInit = () => {
+        new (window as any).google.translate.TranslateElement(
+          { pageLanguage: 'en', layout: (window as any).google.translate.TranslateElement.InlineLayout.SIMPLE },
+          'google_translate_element'
+        );
+      };
+    }
+
+    // 2. Fetch Dashboard Data
     const fetchDashboard = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -31,7 +48,6 @@ export default function DashboardPage() {
       }
       setUser(session.user);
 
-      // Fetch fresh, live score states directly from the summary view
       const { data: summaryData } = await supabase
         .from('neighbor_engagement_summary')
         .select('*')
@@ -47,7 +63,6 @@ export default function DashboardPage() {
         });
       }
 
-      // Fetch open requests
       const { data } = await supabase
         .from('requests')
         .select('*')
@@ -121,10 +136,9 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#f0f9ff] p-4 font-sans pb-12">
       
-      {/* NEW COMMAND CENTER HEADER */}
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0 z-20">
         <div className="flex-1 w-full sm:w-auto flex justify-center sm:justify-start">
-          <div id="google_translate_element" className="min-h-[32px]"></div>
+          <div id="google_translate_element" className="min-h-[32px] flex items-center justify-center"></div>
         </div>
         <h1 className="text-xl font-bold tracking-widest text-center whitespace-nowrap">My Dashboard</h1>
         <div className="flex-1 w-full sm:w-auto flex justify-center sm:justify-end">
@@ -139,7 +153,6 @@ export default function DashboardPage() {
 
       <div className="max-w-2xl mx-auto space-y-6">
 
-        {/* NEW 6-BUTTON NAVIGATION GRID */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <button onClick={() => router.push('/profile')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
             <span className="text-2xl group-hover:scale-110 transition-transform">👤</span>
@@ -172,7 +185,6 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* ALERTS INBOX BANNER */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-cyan-500 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-extrabold text-gray-800 mb-1">Activity Alerts</h2>
@@ -188,7 +200,6 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* RE-RENDERED JOURNEY TRACKER */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-teal-600">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-extrabold text-gray-800 flex items-center gap-2">
@@ -219,7 +230,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* OPEN REQUESTS */}
         <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-[#164e63]">
           <h2 className="text-xl font-extrabold text-gray-800 mb-2">My Open Requests</h2>
           <p className="text-gray-600 text-sm mb-4">Manage the help you have asked for. Don't forget to mark tasks as fulfilled so your neighbors can earn their Volunteer Raffle entries!</p>
