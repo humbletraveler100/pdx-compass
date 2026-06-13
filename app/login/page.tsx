@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginContent() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agreeTos, setAgreeTos] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // MAGIC TRICK: Capture the returnTo parameter, default to the Dashboard
+  const returnTo = searchParams.get('returnTo') || '/dashboard';
 
   const handleAuth = async (e: any) => {
     e.preventDefault();
@@ -26,11 +30,13 @@ export default function LoginPage() {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        router.push('/feed');
+        // Redirect returning users back to where they were!
+        router.push(returnTo);
       } else {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         alert("Account created successfully! Please check your email to verify your account, then set up your profile.");
+        // Brand new users always go to the profile setup first
         router.push('/profile');
       }
     } catch (error: any) {
@@ -46,13 +52,13 @@ export default function LoginPage() {
         
         {/* Header Tabs */}
         <div className="flex bg-gray-50 border-b">
-          <button 
+          <button
             onClick={() => setIsLogin(true)}
             className={`flex-1 py-4 text-sm font-bold tracking-wide transition ${isLogin ? 'text-[#164e63] bg-white border-b-2 border-[#164e63]' : 'text-gray-400 hover:text-gray-600'}`}
           >
             SIGN IN
           </button>
-          <button 
+          <button
             onClick={() => setIsLogin(false)}
             className={`flex-1 py-4 text-sm font-bold tracking-wide transition ${!isLogin ? 'text-[#164e63] bg-white border-b-2 border-[#164e63]' : 'text-gray-400 hover:text-gray-600'}`}
           >
@@ -70,16 +76,15 @@ export default function LoginPage() {
           <form onSubmit={handleAuth} className="space-y-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Email Address</label>
-              <input 
+              <input
                 type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0f766e] outline-none transition"
                 placeholder="neighbor@example.com"
               />
             </div>
-            
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
-              <input 
+              <input
                 type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#0f766e] outline-none transition"
                 placeholder="••••••••"
@@ -89,10 +94,10 @@ export default function LoginPage() {
             {/* MANDATORY TOS CHECKBOX FOR SIGNUP */}
             {!isLogin && (
               <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 flex gap-3 items-start">
-                <input 
-                  type="checkbox" 
-                  id="tos" 
-                  checked={agreeTos} 
+                <input
+                  type="checkbox"
+                  id="tos"
+                  checked={agreeTos}
                   onChange={(e) => setAgreeTos(e.target.checked)}
                   className="mt-1 w-5 h-5 text-[#0f766e] rounded focus:ring-[#0f766e] cursor-pointer"
                 />
@@ -104,19 +109,28 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button 
+            <button
               type="submit" disabled={loading}
               className="w-full bg-[#fcd34d] text-[#164e63] font-extrabold py-3 rounded-lg shadow hover:bg-opacity-90 transition mt-2"
             >
               {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
             </button>
           </form>
-          
+
           <div className="mt-6 text-center">
             <a href="/" className="text-[#0f766e] text-sm font-bold hover:underline">← Return Home</a>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+// Next.js strictly requires useSearchParams to be wrapped in a Suspense boundary
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#cffafe] flex items-center justify-center text-[#164e63] font-bold">Loading Secure Login...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
