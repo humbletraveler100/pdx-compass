@@ -187,7 +187,7 @@ export default function IdeasPage() {
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex justify-between items-center sticky top-0 z-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-cyan-200 hover:underline">← Back</button>
         <h1 className="text-lg font-bold tracking-widest text-center flex-1">Town Square</h1>
-        <a href="/" className="text-sm font-bold text-white hover:underline">Home</a>
+        <a href="/dashboard" className="text-sm font-bold text-white hover:underline">Dashboard</a>
       </nav>
 
       <div className="max-w-2xl mx-auto space-y-6">
@@ -208,24 +208,18 @@ export default function IdeasPage() {
           )}
         </div>
 
-        <div className="bg-slate-50 border border-slate-200 p-5 rounded-xl shadow-xs text-gray-700 text-sm leading-relaxed">
-          <h3 className="font-extrabold text-[#164e63] text-base mb-2 flex items-center gap-2">
-            📢 Community Reminder: Forum Rules & Guidelines
+        {/* FEEDBACK IMPLEMENTED: Micro-Coaching and plain-speech norms injected here */}
+        <div className="bg-cyan-50 border border-cyan-200 p-5 rounded-xl shadow-xs text-gray-700 text-sm leading-relaxed">
+          <h3 className="font-extrabold text-[#164e63] text-base mb-1.5 flex items-center gap-1.5">
+            🏛️ Town Square Etiquette
           </h3>
-          <p className="mb-2 font-semibold text-slate-800">Hello neighbors,</p>
-          <p className="mb-4 text-xs text-gray-600">
-            This is a quick reminder to review our community parameters. Our goal is to maintain a welcoming, respectful, and productive public square for everyone:
+          <p className="text-xs text-cyan-900 font-medium mb-2">
+            This shared space is dedicated strictly to hyper-local topics: street safety, community events, policy ideas, and resource sharing.
           </p>
-          <ul className="space-y-3.5 pl-1 mb-4 text-xs">
-            <li><strong>• Be Respectful and Kind:</strong> Treat all members with dignity. Direct all disagreements toward the idea, not the individual.</li>
-            <li><strong>• Keep it On-Topic:</strong> Stay focused on the thread's core subject. Avoid dropping irrelevant or distracting links.</li>
-            <li><strong>• Write Thoughtfully:</strong> Avoid using aggressive ALL CAPS structures. Proofread text to prevent misinterpretation.</li>
-            <li><strong>• Protect Privacy:</strong> Respect personal boundaries. Never share identifying private info without explicit permissions.</li>
-            <li><strong>• Zero Tolerance Policy:</strong> Direct hate speech, discrimination, harassment, or malicious spam updates are removed immediately.</li>
-          </ul>
-          <p className="border-t border-slate-200 pt-3 text-xs text-[#0f766e] font-bold">
-            Thank you for helping us keep this space safe. For detailed conditions, review our <a href="/safety" className="underline hover:text-cyan-800">Community Forum Rules</a> template.
-          </p>
+          <div className="bg-white/80 rounded-lg p-3 text-xs border border-cyan-100 text-gray-600 space-y-1">
+            <p>🛑 <strong className="text-gray-700">What to avoid:</strong> This forum is not for personal attacks, national partisan political fights, commercial spam, or selling products.</p>
+            <p>🌱 <strong className="text-gray-700">Our goal:</strong> Let's look out for one another and keep focus turned toward what we can collectively achieve right here in our neighborhood.</p>
+          </div>
         </div>
 
         {showNewPostForm && currentUser && (
@@ -233,7 +227,15 @@ export default function IdeasPage() {
             <h3 className="font-bold text-[#164e63] mb-4 text-lg">Post to the Town Square</h3>
             
             <input type="text" placeholder="Topic or Question Title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#164e63] mb-3 text-sm" />
-            <textarea placeholder="Add details or context for the neighborhood conversation..." value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#164e63] mb-3 text-sm" />
+            
+            {/* Added a subtle contextual placeholder cue */}
+            <textarea 
+              placeholder="Add details... Tip: Framing your text around local solutions or community questions yields the most constructive feedback." 
+              value={newDescription} 
+              onChange={(e) => setNewDescription(e.target.value)} 
+              rows={3} 
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:border-[#164e63] mb-3 text-sm" 
+            />
 
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Add a Cover Photo (Optional)</label>
