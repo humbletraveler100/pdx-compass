@@ -23,29 +23,25 @@ export default function DashboardPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // 1. Bulletproof React-Aware Google Translate Initialization
+    // 1. Google Translate Initialization
     (window as any).googleTranslateElementInit = () => {
       const container = document.getElementById('google_translate_element');
-      if (container) container.innerHTML = ''; // Clear to prevent duplicates
-      
-      new (window as any).google.translate.TranslateElement(
-        { pageLanguage: 'en' },
-        'google_translate_element'
-      );
+      if (container && container.innerHTML.trim() === '') {
+        new (window as any).google.translate.TranslateElement(
+          { pageLanguage: 'en' },
+          'google_translate_element'
+        );
+      }
     };
 
-    let scriptAdded = false;
-    if (!document.getElementById('google-translate-script')) {
+    const existingScript = document.getElementById('google-translate-script');
+    if (!existingScript) {
       const script = document.createElement('script');
       script.id = 'google-translate-script';
-      script.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
       script.async = true;
       document.body.appendChild(script);
-      scriptAdded = true;
-    }
-
-    // If script was already loaded from a previous page, manually re-fire the init
-    if (!scriptAdded && (window as any).google && (window as any).google.translate) {
+    } else if ((window as any).google && (window as any).google.translate) {
       (window as any).googleTranslateElementInit();
     }
 
@@ -148,7 +144,7 @@ export default function DashboardPage() {
       
       <nav className="bg-[#164e63] text-white p-4 shadow-md rounded-xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 sticky top-0 z-20">
         <div className="flex-1 w-full sm:w-auto flex justify-center sm:justify-start">
-          <div id="google_translate_element" className="min-h-[32px] flex items-center justify-center bg-white rounded-md overflow-hidden p-1 shadow-inner"></div>
+          <div id="google_translate_element" className="min-h-[32px] flex items-center justify-center"></div>
         </div>
         <h1 className="text-xl font-bold tracking-widest text-center whitespace-nowrap">My Dashboard</h1>
         <div className="flex-1 w-full sm:w-auto flex justify-center sm:justify-end">
