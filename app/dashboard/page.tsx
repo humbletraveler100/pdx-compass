@@ -117,6 +117,9 @@ export default function DashboardPage() {
 
   if (loading) return <div className="p-8 text-center text-[#164e63] font-bold">Loading Dashboard...</div>;
 
+  // Feedback Implemented: Determine if this is a brand new user needing onboarding direction
+  const isNewUser = starsBreakdown.totalStars === 0 && requests.length === 0;
+
   return (
     <>
       <Script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" strategy="afterInteractive" />
@@ -153,37 +156,55 @@ export default function DashboardPage() {
 
         <div className="max-w-2xl mx-auto space-y-6">
 
+          {/* Quick Links Command Center */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <button onClick={() => router.push('/profile')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
               <span className="text-2xl group-hover:scale-110 transition-transform">👤</span>
               <span className="text-xs font-bold text-gray-700">My Profile</span>
             </button>
-            
             <button onClick={() => router.push('/ask')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
               <span className="text-2xl group-hover:scale-110 transition-transform">🛠️</span>
               <span className="text-xs font-bold text-gray-700">Ask for Help</span>
             </button>
-            
             <button onClick={() => router.push('/feed')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
               <span className="text-2xl group-hover:scale-110 transition-transform">🤝</span>
               <span className="text-xs font-bold text-gray-700 text-center leading-tight">Help a<br/>Neighbor</span>
             </button>
-            
             <button onClick={() => router.push('/ideas')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
               <span className="text-2xl group-hover:scale-110 transition-transform">💬</span>
               <span className="text-xs font-bold text-gray-700">Town Square</span>
             </button>
-            
             <button onClick={() => router.push('/spotlight')} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-teal-500 transition group flex flex-col items-center justify-center gap-2">
               <span className="text-2xl group-hover:scale-110 transition-transform">🌟</span>
               <span className="text-xs font-bold text-gray-700">Spotlight</span>
             </button>
-            
             <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-500 transition group flex flex-col items-center justify-center gap-2 text-center">
               <span className="text-2xl group-hover:scale-110 transition-transform">🗺️</span>
               <span className="text-[10px] font-bold text-blue-700 leading-tight">PDX Resource<br/>Compass</span>
             </a>
           </div>
+
+          {/* NEW FIRST-TIME USER BANNER */}
+          {isNewUser && (
+            <div className="bg-teal-50 border border-teal-200 p-5 rounded-xl shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10 text-6xl pointer-events-none">✨</div>
+              <h2 className="text-lg font-black text-teal-800 mb-2 relative z-10">Welcome to PDX Community Compass!</h2>
+              <p className="text-sm text-teal-700 mb-4 leading-relaxed relative z-10">
+                Start by posting a request, offering to help a neighbor, or visiting Town Square to see what people are talking about.
+              </p>
+              <div className="flex flex-wrap gap-3 relative z-10">
+                <button onClick={() => router.push('/ask')} className="bg-white text-teal-700 border border-teal-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-teal-100 transition shadow-sm">
+                  + Post a request
+                </button>
+                <button onClick={() => router.push('/feed')} className="bg-white text-teal-700 border border-teal-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-teal-100 transition shadow-sm">
+                  🤝 Help a neighbor
+                </button>
+                <button onClick={() => router.push('/ideas')} className="bg-white text-teal-700 border border-teal-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-teal-100 transition shadow-sm">
+                  💬 Visit Town Square
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white p-6 rounded-xl shadow-sm border-t-4 border-cyan-500 flex justify-between items-center">
             <div>

@@ -114,11 +114,12 @@ export default function FrontPorch() {
                 <button onClick={() => router.push('/ideas')} className="text-[#164e63] font-bold text-sm group-hover:underline">Visit Town Square →</button>
               </div>
 
+              {/* FEEDBACK IMPLEMENTED: Direct brand name connection for resources */}
               <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition group">
                 <div className="text-3xl mb-3">🗺️</div>
-                <h4 className="text-lg font-black text-gray-800 mb-2">I Need Resources</h4>
-                <p className="text-sm text-gray-500 mb-4">Open the PDX Resource Compass for housing, food, health, and more.</p>
-                <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold text-sm group-hover:underline">Open PDX Resource Compass ↗</a>
+                <h4 className="text-lg font-black text-gray-800 mb-2">PDX Resource Compass</h4>
+                <p className="text-sm text-gray-500 mb-4">Search our official, trusted directory for local housing, food, health, and crisis support.</p>
+                <a href="https://humbletravelers.org/community-support" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold text-sm group-hover:underline">Open the Resource Compass ↗</a>
               </div>
 
             </div>
